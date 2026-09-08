@@ -34,7 +34,7 @@ jobs:
 
           readme = Path('README.md')
           text = readme.read_text(encoding='utf-8')
-          text = text.replace('**Version:** 0.2.29', '**Version:** 0.2.30', 1)
+          text = text.replace('**Version:** 0.2.29  ', '**Version:** 0.2.30', 1)
           text = text.replace(
               'Builds a clean versioned GitHub package named **AzerothQuesting-<version>.zip** through GitHub Actions.',
               'Builds a clean **AzerothQuesting.zip** player package plus a versioned **AzerothQuesting-<version>.zip** archive through GitHub Actions.',
