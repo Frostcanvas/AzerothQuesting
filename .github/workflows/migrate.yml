@@ -38,8 +38,6 @@ jobs:
 
           root = Path('.')
 
-          # Rebrand player-facing strings/comments while intentionally preserving
-          # legacy internal globals such as ZoneQuestGuideDB and ZoneQuestGuideFrame.
           for path in list(root.glob('*.lua')) + [root / 'AzerothQuesting.toc']:
               text = path.read_text(encoding='utf-8')
               text = text.replace('Zone Quest Guide', 'Azeroth Questing')
@@ -77,41 +75,39 @@ jobs:
           end = text.index('## Important limitations')
           replacement = '''## GitHub ZIP packages
 
-          GitHub's built-in **Code -> Download ZIP** is a source archive and uses a branch suffix such as `AzerothQuesting-main.zip`. The repository's GitHub Actions packaging workflow produces a versioned package such as **AzerothQuesting-0.2.29.zip** containing a top-level `AzerothQuesting/` addon folder.
+GitHub's built-in **Code -> Download ZIP** is a source archive and uses a branch suffix such as `AzerothQuesting-main.zip`. The repository's GitHub Actions packaging workflow produces a versioned package such as **AzerothQuesting-0.2.29.zip** containing a top-level `AzerothQuesting/` addon folder.
 
-          ## Rename from Zone Quest Guide
+## Rename from Zone Quest Guide
 
-          Version 0.2.29 changes the public addon, repository, package, and AddOn List name to **Azeroth Questing**. The internal account-wide SavedVariables table intentionally remains `ZoneQuestGuideDB` in this release to make the rename less disruptive.
+Version 0.2.29 changes the public addon, repository, package, and AddOn List name to **Azeroth Questing**. The internal account-wide SavedVariables table intentionally remains `ZoneQuestGuideDB` in this release to make the rename less disruptive.
 
-          WoW names the SavedVariables file after the addon folder, so an existing `WTF/Account/<ACCOUNT>/SavedVariables/ZoneQuestGuide.lua` file is not automatically loaded by the new `AzerothQuesting` folder. To keep existing settings and learned data, exit WoW and copy that file to `AzerothQuesting.lua` before the first launch of the renamed addon. Do not enable the old ZoneQuestGuide addon folder and AzerothQuesting at the same time.
+WoW names the SavedVariables file after the addon folder, so an existing `WTF/Account/<ACCOUNT>/SavedVariables/ZoneQuestGuide.lua` file is not automatically loaded by the new `AzerothQuesting` folder. To keep existing settings and learned data, exit WoW and copy that file to `AzerothQuesting.lua` before the first launch of the renamed addon. Do not enable the old ZoneQuestGuide addon folder and AzerothQuesting at the same time.
 
-          ## Install
+## Install
 
-          1. Exit World of Warcraft.
-          2. Download the packaged `AzerothQuesting-<version>.zip` or a GitHub Release ZIP.
-          3. Place the top-level `AzerothQuesting` folder into `World of Warcraft/_retail_/Interface/AddOns/`.
-          4. Start WoW and enable **Azeroth Questing**.
-          5. Use `/aq` if the panel is hidden. Legacy `/zq` commands remain supported.
+1. Exit World of Warcraft.
+2. Download the packaged `AzerothQuesting-<version>.zip` or a GitHub Release ZIP.
+3. Place the top-level `AzerothQuesting` folder into `World of Warcraft/_retail_/Interface/AddOns/`.
+4. Start WoW and enable **Azeroth Questing**.
+5. Use `/aq` if the panel is hidden. Legacy `/zq` commands remain supported.
 
-          '''
-          replacement = '\n'.join(line[10:] if line.startswith('          ') else line for line in replacement.splitlines()) + '\n'
+'''
           text = text[:start] + replacement + text[end:]
 
           start = text.index('## In-game/test plan for v0.2.26')
           end = text.index('## Roadmap')
           test_plan = '''## In-game/test plan for v0.2.29
 
-          1. Remove or disable the old `ZoneQuestGuide` addon folder so both copies cannot load together. If existing local settings/learning data matter, copy `ZoneQuestGuide.lua` to `AzerothQuesting.lua` while WoW is closed before launching the renamed addon.
-          2. Start Retail WoW, confirm **Azeroth Questing** appears in the AddOn List, then `/reload` and verify there are no Lua errors.
-          3. Confirm `/aq` opens/hides the main window and `/aq refresh` works. Also confirm the legacy `/zq` alias still reaches the same command handler.
-          4. Verify the minimap button, navigation HUD, options window, export windows, quest ordering, Auto Accept/Auto Turn-in, and `/aq check` still work under the new addon folder/TOC name.
-          5. Continue the outstanding v0.2.28 breadcrumb test: when a known breadcrumb/later-quest pair is obtainable, confirm the breadcrumb is preferred and the later quest warns/pauses Auto Accept until the breadcrumb is accepted or completed.
-          6. If Wago Analytics is enabled, run `/aq wago` and confirm the bundled shim still registers project `EGPeM3N1` after the addon rename.
+1. Remove or disable the old `ZoneQuestGuide` addon folder so both copies cannot load together. If existing local settings/learning data matter, copy `ZoneQuestGuide.lua` to `AzerothQuesting.lua` while WoW is closed before launching the renamed addon.
+2. Start Retail WoW, confirm **Azeroth Questing** appears in the AddOn List, then `/reload` and verify there are no Lua errors.
+3. Confirm `/aq` opens/hides the main window and `/aq refresh` works. Also confirm the legacy `/zq` alias still reaches the same command handler.
+4. Verify the minimap button, navigation HUD, options window, export windows, quest ordering, Auto Accept/Auto Turn-in, and `/aq check` still work under the new addon folder/TOC name.
+5. Continue the outstanding v0.2.28 breadcrumb test: when a known breadcrumb/later-quest pair is obtainable, confirm the breadcrumb is preferred and the later quest warns/pauses Auto Accept until the breadcrumb is accepted or completed.
+6. If Wago Analytics is enabled, run `/aq wago` and confirm the bundled shim still registers project `EGPeM3N1` after the addon rename.
 
-          Version 0.2.29 has not yet been tested in World of Warcraft. GitHub packaging success is not an in-game test.
+Version 0.2.29 has not yet been tested in World of Warcraft. GitHub packaging success is not an in-game test.
 
-          '''
-          test_plan = '\n'.join(line[10:] if line.startswith('          ') else line for line in test_plan.splitlines()) + '\n'
+'''
           text = text[:start] + test_plan + text[end:]
           readme.write_text(text, encoding='utf-8')
 
@@ -121,94 +117,23 @@ jobs:
           marker = '# Azeroth Questing Changelog\n\n'
           entry = '''**VERSION 0.2.29 - September 8, 2026 - Available on GitHub**
 
-          * **Changed** the public addon name from **Zone Quest Guide** to **Azeroth Questing** and moved active development to the new `Frostcanvas/AzerothQuesting` GitHub repository. The renamed package now uses `AzerothQuesting.toc` and a top-level `AzerothQuesting/` addon folder.
+* **Changed** the public addon name from **Zone Quest Guide** to **Azeroth Questing** and moved active development to the new `Frostcanvas/AzerothQuesting` GitHub repository. The renamed package now uses `AzerothQuesting.toc` and a top-level `AzerothQuesting/` addon folder.
 
-          * **Changed** player-facing addon labels, chat prefixes, options/export titles, comments, README installation guidance, and the GitHub packaging workflow to use the Azeroth Questing name. Internal frame/handler identifiers remain unchanged where they are not player-facing to reduce unnecessary regression risk.
+* **Changed** player-facing addon labels, chat prefixes, options/export titles, comments, README installation guidance, and the GitHub packaging workflow to use the Azeroth Questing name. Internal frame/handler identifiers remain unchanged where they are not player-facing to reduce unnecessary regression risk.
 
-          * **Added** `/aq` and `/azerothquesting` as the primary slash commands while retaining `/zq` and `/zonequest` as legacy aliases.
+* **Added** `/aq` and `/azerothquesting` as the primary slash commands while retaining `/zq` and `/zonequest` as legacy aliases.
 
-          * **Changed** the GitHub Actions package name to `AzerothQuesting-<version>.zip` and the development artifact/folder name to `AzerothQuesting`.
+* **Changed** the GitHub Actions package name to `AzerothQuesting-<version>.zip` and the development artifact/folder name to `AzerothQuesting`.
 
-          * **Changed** the rename to keep the existing `ZoneQuestGuideDB` SavedVariables table name for compatibility. Because WoW stores SavedVariables in a file named after the addon folder, existing `ZoneQuestGuide.lua` data still needs to be copied to `AzerothQuesting.lua` while WoW is closed if a player wants to carry old local settings/learning data into the renamed addon.
+* **Changed** the rename to keep the existing `ZoneQuestGuideDB` SavedVariables table name for compatibility. Because WoW stores SavedVariables in a file named after the addon folder, existing `ZoneQuestGuide.lua` data still needs to be copied to `AzerothQuesting.lua` while WoW is closed if a player wants to carry old local settings/learning data into the renamed addon.
 
-          *This v0.2.29 rename/migration has not yet been tested in World of Warcraft. After updating, do not load the old ZoneQuestGuide folder and AzerothQuesting at the same time. Verify the AddOn List name, `/aq` and legacy `/zq` commands, main panel, minimap button, navigation HUD, options/export windows, quest automation, timeline detection, `/aq check`, Wago registration if enabled, and the still-outstanding v0.2.28 breadcrumb lockout behavior. GitHub packaging is a build check only and must not be treated as an in-game test. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+*This v0.2.29 rename/migration has not yet been tested in World of Warcraft. After updating, do not load the old ZoneQuestGuide folder and AzerothQuesting at the same time. Verify the AddOn List name, `/aq` and legacy `/zq` commands, main panel, minimap button, navigation HUD, options/export windows, quest automation, timeline detection, `/aq check`, Wago registration if enabled, and the still-outstanding v0.2.28 breadcrumb lockout behavior. GitHub packaging is a build check only and must not be treated as an in-game test. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
 
-          ---
+---
 
-          '''
-          entry = '\n'.join(line[10:] if line.startswith('          ') else line for line in entry.splitlines()) + '\n'
+'''
           changelog.write_text(marker + entry + old[len(marker):], encoding='utf-8')
           PY
-
-          mkdir -p .github/workflows
-          cat > .github/workflows/package.yml <<'YAML'
-          name: Package AzerothQuesting
-
-          on:
-            push:
-              branches:
-                - main
-            workflow_dispatch:
-            release:
-              types:
-                - published
-
-          permissions:
-            contents: write
-
-          jobs:
-            package:
-              runs-on: ubuntu-latest
-
-              steps:
-                - name: Check out repository
-                  uses: actions/checkout@v6
-
-                - name: Build addon package
-                  id: package
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-
-                    VERSION="$(awk '/^## Version:/ { print $3; exit }' AzerothQuesting.toc)"
-                    if [ -z "$VERSION" ]; then
-                      echo "Could not read addon version from AzerothQuesting.toc" >&2
-                      exit 1
-                    fi
-
-                    rm -rf package
-                    mkdir -p package/AzerothQuesting
-
-                    rsync -a \
-                      --exclude='.git' \
-                      --exclude='.github' \
-                      --exclude='package' \
-                      ./ package/AzerothQuesting/
-
-                    ZIP_NAME="AzerothQuesting-${VERSION}.zip"
-                    (
-                      cd package
-                      zip -qr "../${ZIP_NAME}" AzerothQuesting
-                    )
-
-                    echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-                    echo "zip_name=${ZIP_NAME}" >> "$GITHUB_OUTPUT"
-
-                - name: Upload development package
-                  uses: actions/upload-artifact@v4
-                  with:
-                    name: AzerothQuesting
-                    path: package
-                    if-no-files-found: error
-
-                - name: Attach package to GitHub Release
-                  if: github.event_name == 'release'
-                  env:
-                    GH_TOKEN: ${{ github.token }}
-                  run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.package.outputs.zip_name }}" --clobber
-          YAML
-
-          rm -f .github/workflows/migrate.yml
 
           test -f AzerothQuesting.toc
           test ! -e ZoneQuestGuide.toc
