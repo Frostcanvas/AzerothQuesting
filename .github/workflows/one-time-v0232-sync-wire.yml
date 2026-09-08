@@ -1,0 +1,77 @@
+name: One-time v0.2.32 sync wire release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Apply v0.2.32 metadata
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          toc = Path('AzerothQuesting.toc')
+          text = toc.read_text(encoding='utf-8')
+          if '## Version: 0.2.31' not in text:
+              raise SystemExit('Expected addon version 0.2.31 before v0.2.32 bump')
+          toc.write_text(text.replace('## Version: 0.2.31', '## Version: 0.2.32', 1), encoding='utf-8')
+
+          changelog = Path('CHANGELOG.md')
+          text = changelog.read_text(encoding='utf-8')
+          header = '# Azeroth Questing Changelog\n\n'
+          if not text.startswith(header):
+              raise SystemExit('Unexpected changelog header')
+          entry = '''**VERSION 0.2.32 - September 8, 2026 - Available on GitHub**
+
+* **Added** a Companion-safe `AQO1` wire record to each new queued quest observation. The wire record contains only addon-generated quest/map/evidence, faction, class, level, completion, timestamp, source, and version fields, allowing **Azeroth Questing Companion** to extract structured observations from SavedVariables without executing or generally parsing Lua.
+
+* **Improved** the Companion synchronization store to schema version 2 so new v0.2.32 observations can be sent directly to the Service01 structured batch API while older v0.2.31 queue entries remain readable as historical SavedVariables data.
+
+* **Changed** the server-sync handoff so the Windows Companion can deduplicate and upload individual observations by their stable observation key rather than needing to treat the entire SavedVariables file as one research record.
+
+*This v0.2.32 Companion wire-format change has not been tested in World of Warcraft. After updating, `/reload`, interact with one or more quests, run `/aq sync`, then fully log out or `/reload` so WoW writes `AzerothQuesting.lua`. Verify the SavedVariables `companionSync.observations` entries contain an `AQO1|...` wire field, and verify the Windows Companion can extract/upload those records once its Service01 sync build is installed. Also repeat the v0.2.31 `/aq network`, custom `AzerothQuesting` channel, per-class export, and peer-network tests because those features remain untested in-game. GitHub remains the only listed distribution platform because no downloadable Wago release has been published.*
+
+---
+'''
+          changelog.write_text(header + entry + text[len(header):], encoding='utf-8')
+          PY
+
+      - name: Validate addon files
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+          for file in *.lua libs/LibStub/*.lua libs/WagoAnalytics/*.lua; do
+            luac -p "$file"
+          done
+          grep -Fq '## Version: 0.2.32' AzerothQuesting.toc
+          grep -Fq 'AQO1' CompanionSync.lua
+          grep -Fq 'VERSION 0.2.32 - September 8, 2026 - Available on GitHub' CHANGELOG.md
+          git diff --check
+
+      - name: Commit v0.2.32
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Frostcanvas"
+          git config user.email "131615585+Frostcanvas@users.noreply.github.com"
+          git add AzerothQuesting.toc CHANGELOG.md
+          git commit -m "Release Azeroth Questing v0.2.32 companion sync wire format"
+          git push origin HEAD:main
