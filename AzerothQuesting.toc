@@ -1,0 +1,35 @@
+## Interface: 120100
+## Title: Azeroth Questing
+## Notes: Shows unfinished quests for your current zone and points you toward the selected quest.
+## Author: OpenAI + Player
+## Version: 0.2.29
+## IconTexture: Interface\Icons\INV_Misc_Map_01
+## SavedVariables: ZoneQuestGuideDB
+## X-Wago-ID: EGPeM3N1
+## OptionalDependencies: WagoAnalytics
+
+libs\LibStub\LibStub.lua
+libs\WagoAnalytics\Shim.lua
+QuestData.lua
+QuestLockouts.lua
+Core.lua
+QuestStatus.lua
+TimePhases.lua
+TimelineZones.lua
+TimelineSync.lua
+UldumTimeline.lua
+TirisfalTimeline.lua
+ArathiTimeline.lua
+PhaseLearning.lua
+MapQuestLearning.lua
+InstanceLearning.lua
+ContributionPrompt.lua
+WagoTelemetry.lua
+UIExtras.lua
+QuestPriority.lua
+LocationHints.lua
+QuestAutomation.lua
+DailyQuests.lua
+NavigationHUD.lua
+PhaseGuidance.lua
+SlashDiagnostics.lua

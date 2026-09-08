@@ -1,0 +1,596 @@
+# Azeroth Questing Changelog
+
+**VERSION 0.2.29 - September 8, 2026 - Available on GitHub**
+
+* **Changed** the public addon name from **Zone Quest Guide** to **Azeroth Questing** and moved active development to the new `Frostcanvas/AzerothQuesting` GitHub repository. The renamed package now uses `AzerothQuesting.toc` and a top-level `AzerothQuesting/` addon folder.
+
+* **Changed** player-facing addon labels, chat prefixes, options/export titles, comments, README installation guidance, and the GitHub packaging workflow to use the Azeroth Questing name. Internal frame/handler identifiers remain unchanged where they are not player-facing to reduce unnecessary regression risk.
+
+* **Added** `/aq` and `/azerothquesting` as the primary slash commands while retaining `/zq` and `/zonequest` as legacy aliases.
+
+* **Changed** the GitHub Actions package name to `AzerothQuesting-<version>.zip` and the development artifact/folder name to `AzerothQuesting`.
+
+* **Changed** the rename to keep the existing `ZoneQuestGuideDB` SavedVariables table name for compatibility. Because WoW stores SavedVariables in a file named after the addon folder, existing `ZoneQuestGuide.lua` data still needs to be copied to `AzerothQuesting.lua` while WoW is closed if a player wants to carry old local settings/learning data into the renamed addon.
+
+*This v0.2.29 rename/migration has not yet been tested in World of Warcraft. After updating, do not load the old ZoneQuestGuide folder and AzerothQuesting at the same time. Verify the AddOn List name, `/aq` and legacy `/zq` commands, main panel, minimap button, navigation HUD, options/export windows, quest automation, timeline detection, `/aq check`, Wago registration if enabled, and the still-outstanding v0.2.28 breadcrumb lockout behavior. GitHub packaging is a build check only and must not be treated as an in-game test. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+**VERSION 0.2.28 - August 29, 2026 - Available on GitHub**
+
+* **Added** Retail breadcrumb lockout data covering 881 breadcrumb quests and 1,161 breadcrumb-to-later-quest relationships extracted as quest-ID facts from the user-provided All The Things Retail/Standard metadata snapshot. Zone Quest Guide stores these relationships in its own `skippedBy` availability format rather than copying ATT quest records or code.
+
+* **Added** a lockout warning when the quest-detail window opens for a quest known to skip unfinished breadcrumb quests. The warning names the unfinished breadcrumb quest IDs so a player can complete them before accepting the later quest if desired. The warning is shown once per later quest during the current login session.
+
+* **Improved** automatic quest priority when both sides of a known breadcrumb lockout are still available. Zone Quest Guide now places the breadcrumb ahead of the later quest that can skip it, even when the later quest is geographically closer, reducing the chance that automatic navigation leads the player into an avoidable lockout.
+
+* **Improved** Auto Accept safety around known breadcrumb lockouts. If the same NPC offers both the breadcrumb and the later quest that can skip it, Zone Quest Guide now opens the breadcrumb first. If a quest detail page is opened for a later quest while a known breadcrumb is still unfinished, automatic acceptance pauses and leaves the quest open for manual confirmation instead of immediately accepting the potentially locking quest.
+
+* **Changed** quest availability filtering with the dedicated `skippedBy` rule. An unaccepted breadcrumb is hidden once any known skip-ahead quest is active or completed, including stale session-observed or supplemental records, while an already accepted breadcrumb remains visible so the addon does not hide a quest the character still has in the quest log.
+
+*The uploaded ATT data confirmed the screenshot relationship `29863 -> 29861`: **Stormherald Eljrrin** is a breadcrumb that can be skipped by **Whatever it Takes!**. The new v0.2.28 data loader, warning, ordering, filtering, and Auto Accept safeguards have not yet been tested in World of Warcraft. After updating, `/reload` and use a character/test case where a known breadcrumb pair is still obtainable. For the 29863/29861 example, verify the breadcrumb is preferred when both are visible and opening quest 29861 produces the lockout warning before acceptance. With Auto Accept enabled, verify 29861 is not automatically accepted while 29863 remains unfinished; after the breadcrumb has been accepted or completed, verify normal quest acceptance can continue. Avoid intentionally locking out an unfinished quest on a character you care about solely for testing. Also confirm normal quest ordering, accepted quests, quest automation, and `/zq check` continue to work without Lua errors. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
+**VERSION 0.2.27 - August 29, 2026 - Available on GitHub**
+
+* **Fixed** a repeated `TimePhases.lua` Lua error when Retail WoW returned `UnitName("npc")` as a secret string during `GOSSIP_SHOW`. Secret strings still report `type(...) == "string"`, so the old guard allowed the value through and `name:lower()` attempted indexed access on a protected value.
+
+* **Improved** Zidormi phase detection to check `canaccessvalue()` before normalizing NPC or gossip text and `canaccesstable()` before reading gossip option tables. When Blizzard restricts those values, Zone Quest Guide now skips that automatic gossip sample instead of throwing an error; normal detection can resume once the values are accessible.
+
+*The v0.2.26 failure was reported from World of Warcraft and occurred 13 times in the supplied error log. The v0.2.27 fix has not yet been tested in World of Warcraft. After updating, `/reload`, reproduce the same NPC/gossip situation and verify the `TimePhases.lua` secret-string error no longer appears. Then talk to Zidormi in a normal unrestricted context and confirm timeline detection still identifies and switches the timeline correctly. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
+**VERSION 0.2.26 - August 16, 2026 - Available on GitHub**
+
+* **Added** fuller anonymous Wago research telemetry so the automatic crowd dataset can preserve the same quest-evidence classes used by the local export: `seen`, `available`, `offered`, `accepted`, `active`, and `turnedIn`. Each evidence type remains separately labeled so map/API hints and carried accepted quests can be analyzed differently from stronger NPC-offer, active-NPC, and turn-in observations.
+
+* **Added** Wago completion-state counters for phase-aware and general map/quest observations. The addon now records a `0` or `1` completion state alongside the quest's map/faction context, allowing the crowd dataset to retain the export's completion-support signal without putting character identity into metric names.
+
+* **Added** dashboard-visible `seen_quest_...` and `seen_mapquest_...` discovery switches for quest observations. Quest discovery mirrors share the existing 200-switch session ceiling but are limited to 150 of those slots so long questing sessions leave room for map, phase, and instance fingerprints; the complete evidence stream continues through counters even if the switch mirror reaches its cap.
+
+* **Improved** automatic accepted-quest coverage. Zone Quest Guide now scans quests actually present in the player's quest log for the current map and sends them as explicitly weak `accepted` evidence instead of dropping them from Wago entirely. It also emits a generic `seen` observation for every reported quest record, matching the structure of the local learning export more closely.
+
+* **Improved** instance telemetry so the Wago fingerprint now carries the export's non-name context where available: parent map ID, scenario type/area/texture-kit values, instance type, faction, and current phase/source in addition to map, instance, difficulty, LFG, maximum-player, and group-size IDs. Localized map, quest, difficulty, instance, and scenario names remain local rather than becoming Wago metric keys.
+
+* **Changed** `available` evidence to remain in Wago as a useful map/API hint instead of being treated as proof that the quest exists in the current timeline. The evidence label is preserved so later analysis can require `offered`, `active`, or `turnedIn` when confirming that a quest genuinely exists in a specific world state.
+
+*The v0.2.26 telemetry expansion has not yet been tested in World of Warcraft. After updating, `/reload`, run `/zq check`, interact with an NPC that offers a quest, accept a quest, and if practical turn one in. Verify the phase/map-quest session counts rise, verify `discoveries` rises while under the switch cap, and after the Wago App uploads check Analytics -> Switches for new `seen_quest_...` or `seen_mapquest_...` entries. Also re-enter the live-tested Heroic Battle for Stromgarde if convenient and confirm the richer instance fingerprint does not exceed Wago's metric-name limit or suppress `instancevisit`. Wago's Counters dashboard is still unavailable for direct inspection, so counter receipt cannot yet be verified there. This release has not been tested successfully in WoW yet, and Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
+**VERSION 0.2.25 - August 16, 2026 - Available on GitHub**
+
+* **Added** dashboard-visible Wago discovery switches for the crowdsourced observations that are most useful while Wago's Counters dashboard is not yet available. A real map visit can now mirror to `seen_map_m<map>_<faction>`, a reliable timeline visit can mirror to `seen_phase_m<map>_<faction>_<phase>_src_<source>`, and an instance fingerprint can mirror to `seen_instance_m<map>_i<instance>_d<difficulty>_lfg<id>_max<players>_grp<size>_<type>_<faction>`.
+
+* **Added** a `discovery_switch_mirroring_enabled` Wago feature switch so the Analytics Switches page can show that a client is running the new mirror path even before it encounters a new map or instance.
+
+* **Improved** discovery-switch data quality by reusing the same taxi suppression and reliable-phase rules as the underlying visit telemetry, deduplicating each discovery switch for the current UI session, and capping dynamic discovery switches at 200 per session so unusually long exploration sessions do not crowd out normal Wago feature switches.
+
+* **Improved** `/zq wago` and `/zq check` diagnostics with a `discoveries` count showing how many dashboard-visible discovery switches were queued during the current UI session.
+
+* **Changed** the new switches to mirror rather than replace the existing Wago counters. Zone Quest Guide continues to send `mapvisit`, `phasevisit`, `instancevisit`, and their total counters so that richer aggregate counts remain available when Wago exposes the Counters dashboard.
+
+*The existing v0.2.24 path was observed in World of Warcraft before this release: Alliance Heroic Battle for Stromgarde returned `1044 / Arathi Highlands`, instance `1943 / Warfronts Arathi - Alliance`, type `scenario`, difficulty `149 / Heroic`, `maxPlayers=30`, `groupSize=10`, `LFG=2007`, scenario `The Battle for Stromgarde`, and `/zq check` showed `instancevisit=1`. The Wago website also displayed ZoneQuestGuide's existing feature switches, confirming that switch data reached the Analytics dashboard. The new v0.2.25 dynamic `seen_map`, `seen_phase`, and `seen_instance` switches have not yet been tested in World of Warcraft. After updating and `/reload`, verify `/zq check` shows `discoveries` increasing, verify the corresponding `seen_...` names appear under Wago Analytics -> Switches after the Wago App uploads, verify repeated movement in the same map/instance does not repeatedly increment the discovery count, and confirm taxi-flight suppression and the existing privacy exclusions remain intact. Wago's Counters page currently says the dashboard will be released later, so counter receipt still cannot be inspected there. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
+**VERSION 0.2.24 - August 16, 2026 - Available on GitHub**
+
+* **Added** account-wide instance/scenario fingerprint learning for instanced content such as Warfronts, scenarios, raids, and dungeons. When the player actually enters an instance, Zone Quest Guide can record the live `UiMapID`, parent map when available, instance ID/type, difficulty ID/name, maximum/group-size values, LFG dungeon ID, scenario metadata, faction, and current timeline/source without storing character or group-member identity.
+
+* **Added** `/zq inspect` (also `/zq instance`) to print a compact live diagnostic for the current map and instance, including parent map, instance ID/name/type, difficulty, LFG ID, scenario, faction, and timeline. `/zq instanceexport` opens the new `ZQGINSTANCEDATA|1` block, while `/zq export` now includes phase, map/quest, and instance-learning data together.
+
+* **Added** anonymous Wago instance-visit telemetry. Each distinct in-instance fingerprint can increment an `instancevisit_m<map>_i<instance>_d<difficulty>_lfg<id>_max<players>_grp<size>_<type>_<faction>` counter once per UI session plus `instance_visit_total`. Localized instance/scenario names are intentionally not sent in Wago metric keys.
+
+* **Improved** `/zq wago` and `/zq check` so the current session also reports an `instancevisit` count. This should make it much easier to verify whether Normal and Heroic Warfronts use the same map/instance context or different difficulty/LFG fingerprints.
+
+* **Improved** privacy for community map research. Automatic instance telemetry does not include character names, realms, GUIDs, guilds, account identifiers, party/raid member names, chat, coordinates, timestamps, instance names, or scenario names. The more descriptive names remain only in the local/manual export that the player explicitly chooses whether to copy.
+
+*The new v0.2.24 instance learning, `/zq inspect`, combined export, and Wago instance counters have not yet been tested in World of Warcraft. After updating and `/reload`, first verify `/zq inspect` works outdoors, then enter Heroic Battle for Stromgarde and run `/zq inspect` plus `/zq check` immediately after loading and again once the Warfront starts. Confirm `instancevisit` increases only once for the fingerprint, compare Normal Stromgarde if available, verify `ZQGINSTANCEDATA|1` exports cleanly, and separately confirm `instancevisit_m...` plus `instance_visit_total` reach the Wago development dashboard. Existing v0.2.23 map/phase-visit and taxi-suppression checks are still outstanding. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
+**VERSION 0.2.23 - August 16, 2026 - Available on GitHub**
+
+* **Added** anonymous Wago map-visit telemetry so Zone Quest Guide can record that a player actually entered a live `UiMapID` even when no quest is available there. Each `mapvisit_m<map>_<faction>` observation is deduplicated to once per map/faction during the current UI session.
+
+* **Added** anonymous phase-visit telemetry for maps where the timeline is known from a reliable `zidormi` or `detected` source. These `phasevisit_m<map>_<faction>_<phase>_src_<source>` observations make it possible to distinguish real visits to historical/current world states without requiring a quest to be present.
+
+* **Improved** telemetry privacy and data quality. Map/phase visits do not include coordinates, subzone names, timestamps, character names, realms, GUIDs, guilds, or account identifiers; taxi-flight observations remain suppressed, and repeated movement inside the same map does not create additional visit counters during the session.
+
+* **Improved** `/zq wago` and `/zq check` diagnostics so the current session now shows separate map-visit and phase-visit counts alongside the existing phase-quest and map/quest counters.
+
+*The new v0.2.23 visit telemetry has not yet been tested in World of Warcraft. After updating, verify `/zq check` shows `mapvisit` increasing when entering a new map, verify `phasevisit` increases only after a reliable Zidormi/detected timeline is known, verify moving among subzones on the same UiMapID does not repeatedly increment it, and verify taxi flights do not create flyover visits. Wago dashboard/server receipt of the new counters also still needs separate verification. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
+**VERSION 0.2.22 - August 16, 2026 - Available on GitHub**
+
+* **Added** supplemental quest availability rules for cases where WoW progression makes an older quest impossible to obtain. Database records can now use `blockedBy = { ... }` to hide a quest after any listed blocker quest has been completed.
+
+* **Added** `exclusiveWith = { ... }` for mutually exclusive quest routes. A supplemental quest using this rule is hidden while any listed alternate quest is active and remains hidden once that alternate quest has been completed. If an alternate route is abandoned before completion and the game allows the original route again, the supplemental quest can become eligible on a later refresh.
+
+* **Improved** the existing `prereqs = { ... }` framework by documenting the three availability rules together: every prerequisite must be completed, any completed `blockedBy` quest suppresses the record, and any active/completed `exclusiveWith` quest suppresses the record. These restrictions apply to supplemental database records only; live Blizzard-provided quests remain trusted as currently obtainable or active.
+
+* **Confirmed** from live Silithus testing that both **PAST / Before the Wound** and **PRESENT / The Wound** returned `81 / Silithus`. The existing same-map Zidormi detection correctly changed the displayed timeline from PAST to PRESENT after the switch, so Silithus map ID alone is intentionally not used as a phase classifier.
+
+*The Silithus timeline behavior above was observed in World of Warcraft. The new `blockedBy` and `exclusiveWith` filtering framework has not yet been tested in-game because no guessed quest relationships were added just to exercise the code. When a real breadcrumb or mutually exclusive pair is identified, verify the supplemental quest disappears at the correct acceptance/completion point and that normal Blizzard-provided quests remain unaffected. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
+**VERSION 0.2.21 - August 16, 2026 - Available on GitHub**
+
+* **Added** direct Uldum timeline detection from live Retail map IDs. The player's recording showed `1527 / Uldum` in **PRESENT / N'Zoth assaults** and `249 / Uldum` in **PAST / Cataclysm Uldum**, so Zone Quest Guide can now use those map identities as stronger evidence than cached Zidormi session state.
+
+* **Fixed** `/zq check` briefly reporting map `249` as PRESENT after the Zidormi transition even though the main timeline line had already corrected itself to **PAST / Cataclysm Uldum** once Zidormi was reopened. The new map-derived override makes `249` directly PAST and `1527` directly PRESENT instead of waiting for another gossip refresh.
+
+* **Changed** Uldum-related maps `1330` and `1571` to remain unclassified by direct map identity until their live role is actually observed. They remain part of the broader Uldum registry but are not assumed to be one side of the Zidormi switch.
+
+* **Confirmed** in-game that the Wago bridge is loaded and the new session counters are increasing while normal play generates evidence. During this recording `/zq check` increased from `phase=3 map/quest=29` to `phase=9 map/quest=32`. This confirms the addon is queuing observations through the loaded Wago Analytics client; it does not by itself confirm that the new counters have reached the Wago website/dashboard.
+
+*The Uldum map IDs, Zidormi wording, and Wago session-counter increases were observed in World of Warcraft. The new v0.2.21 map-derived Uldum detection itself still needs an in-game check after updating: before talking to Zidormi, verify `/zq check` reports `1527` as PRESENT `(detected)`, switch to Cataclysm Uldum and verify `249` reports PAST `(detected)` before reopening Zidormi, then return to `1527`. Wago server/dashboard receipt of the new map/quest counters still needs separate verification. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
+**VERSION 0.2.20 - August 16, 2026 - Available on GitHub**
+
+* **Added** direct Tirisfal Glades map detection from live Retail testing. The player's recording showed `2070 / Tirisfal Glades` in **PRESENT / After Battle for Lordaeron** and `18 / Tirisfal Glades` after switching to **PAST / Before Battle for Lordaeron**.
+
+* **Improved** Tirisfal timeline handling so those two live map identities can classify the timeline without requiring a fresh Zidormi conversation. Map `2070` now provides direct PRESENT evidence and map `18` provides direct PAST evidence; manual phase overrides remain stronger.
+
+* **Changed** alternate Tirisfal map `1247` to remain registered but unclassified until its live role is observed in-game instead of assuming that every related Tirisfal UiMapID corresponds to one of the two Zidormi states.
+
+* **Confirmed** from the player's recording that the existing timeline UI and `/zq check` followed the Zidormi transition in both directions: Zidormi offered the pre-Lordaeron destination while on map `2070`, and after switching the addon displayed PAST while `/zq check` reported map `18`; Zidormi then offered a return to the present.
+
+*The map IDs and Zidormi behavior above were observed in World of Warcraft, but the new v0.2.20 automatic map-derived detection itself has not yet been tested after updating. Verify `/zq check` reports `2070` as PRESENT before talking to Zidormi, reports `18` as PAST before reopening Zidormi, and returns to PRESENT cleanly after switching back. Also continue checking Arathi's three-state handler and Wago map/quest telemetry. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
+**VERSION 0.2.19 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** Arathi Highlands timeline display staying on the old two-state **PRESENT / Warfront era** label even after Retail moved the player between different Arathi world states. Live testing showed that current Arathi can report `2372 / Arathi Highlands`, while the Fourth War state can report `14 / Arathi Highlands`; the older generic Zidormi classifier was not designed for this newer three-way setup.
+
+* **Added** a dedicated three-state Arathi timeline handler with separate player-facing states for **PAST / Before Fourth War**, **FOURTH WAR / Warfront era**, and **PRESENT / Current Arathi Highlands**. Map `2372` is treated as a direct current-present signal based on the player's live `/zq check` result.
+
+* **Improved** Arathi Zidormi detection by reading all of her available destinations instead of forcing the first historical-looking option into a simple past/present pair. When the player is in the Fourth War state and Zidormi offers both a **before the war** destination and a **present time** destination, Zone Quest Guide can infer that the missing current state is the Fourth War. Selecting a destination updates the session state immediately and refreshes again after the world transition.
+
+* **Changed** Arathi map `14` to remain context-sensitive rather than being hard-coded as every historical state. This lets the addon keep following Zidormi when Retail reuses an Arathi UiMapID for more than one older state, while still using `2372` as strong evidence for the current-present version.
+
+*The player's screenshots confirmed that `/zq check` now prints correctly in-game, that current Arathi returned map `2372`, and that another Arathi state returned map `14`. The screenshots also showed Zidormi offering **during the Fourth War** from the `2372` state and both **before the war** and **present time** destinations from the `14` state. The new v0.2.19 three-state detection itself still needs in-game testing after updating. Verify `2372` displays PRESENT, the `14` state with the two opposite destinations displays FOURTH WAR, then choose the before-war option and send another `/zq check` so the older state's live map behavior can be recorded. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
+**VERSION 0.2.18 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** the diagnostic `/zq phase` and `/zq maps` commands falling through to the core addon's default show/hide action on clients where the older chain of slash-command wrappers did not reach the intended handler. A final diagnostic router now loads after the other modules and intercepts the testing commands before they can toggle the main panel.
+
+* **Added** `/zq mapid` as a short replacement for the long Blizzard `/run C_Map.GetBestMapForUnit(...)` test command. It prints the live UiMapID and map name directly in chat.
+
+* **Added** `/zq check` (and `/zq debug`) to print the current map ID/name, timeline and detection source, local learned quest count, and current-session Wago phase/map-quest counts in one line. This makes timeline testing much easier when comparing the two sides of a Zidormi switch.
+
+* **Improved** diagnostic safety by handling an unknown timeline/source without trying to concatenate a missing value, while leaving phase-changing commands such as `/zq phase auto`, `/zq phase past`, and `/zq phase present` on the existing phase handler.
+
+*The player observed in-game that the previous `/zq phase` and `/zq maps` diagnostics could simply open/close the Zone Quest Guide window instead of printing their status. The new v0.2.18 final diagnostic router and `/zq check` command have not yet been tested in World of Warcraft. After updating and `/reload`, verify `/zq check`, `/zq phase`, `/zq maps`, and `/zq mapid` print chat output without toggling the panel, and verify normal commands such as `/zq show`, `/zq hide`, `/zq arrow`, and `/zq options` still pass through correctly. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
+**VERSION 0.2.17 - August 16, 2026 - Available on GitHub**
+
+* **Added** automatic anonymous Wago Analytics reporting for strong map/quest observations while players use Zone Quest Guide normally. When WagoAnalytics is available, observations that a quest is **available**, **offered**, **active**, or **turned in** can now increment a map/quest counter containing the live map ID, faction, quest ID, and evidence type even when no Zidormi timeline is known.
+
+* **Improved** Wago privacy and data quality by keeping accepted-only and generic seen observations local. Those weaker observations can remain valid in a quest log while the player moves between maps or timelines, so they are not automatically transmitted as proof that a quest belongs to the current map. Character names, realms, guild names, GUIDs, account identifiers, and quest names are not included in the Wago map/quest metric keys.
+
+* **Improved** flight-path handling for learning and telemetry. Map scans are now skipped while `UnitOnTaxi("player")` reports an active taxi flight, reducing false quest/map associations caused by transient continent or flyover maps while traveling. Strong NPC and turn-in evidence resumes normally after landing.
+
+* **Improved** `/zq wago` so it reports how many phase observations and map/quest observations have been queued during the current UI session. Wago also receives a `map_quest_learning_enabled` switch and a `map_quest_evidence_total` counter to make the new stream easier to verify on the Analytics dashboard.
+
+*The existing Wago Analytics registration/upload path was already observed producing dashboard data, but the new v0.2.17 map/quest counters and taxi suppression have not yet been tested in World of Warcraft. Verify `/zq wago` increases its map/quest count after an offered/available/active/turned-in quest, confirm `mapquest_m..._q...` and `map_quest_evidence_total` appear on the Wago development dashboard, and confirm taxi flights do not create new flyover-map associations. Wago App Analytics sharing is still required for upload. Zone Quest Guide still has no published Wago download, so GitHub remains the only listed distribution platform.*
+
+---
+
+**VERSION 0.2.16 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** learning-export text becoming corrupted inside WoW's copy box. The previous pipe-delimited format could accidentally form WoW text-markup sequences at normal field boundaries, causing headers such as `questID|name` to split and quest names beginning with certain letters to lose characters when displayed or copied.
+
+* **Changed** both learning exports to tab-separated schema version 2: `ZQGPHASEDATA|2` and `ZQGMAPQUESTDATA|2`. The same map, faction, phase, quest, completion, evidence-count, and phase-source data is preserved without relying on pipe characters between fields.
+
+* **Improved** export field sanitizing so tabs, line breaks, and pipe characters inside individual values cannot break the tab-separated row structure.
+
+*The corrupted v1 export was reproduced in-game from the player's copied map/quest report, including a split `questID/name` header and the first letter missing from `Ritual Problems`. The v0.2.16 tab-separated fix has not yet been tested in World of Warcraft. Verify `/zq mapexport` and `/zq export` copy complete headers and quest names, and verify the Google Form preserves the v2 report correctly. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
+**VERSION 0.2.15 - August 16, 2026 - Available on GitHub**
+
+* **Added** automatic GitHub addon packaging. Pushes to `main` now build a GitHub Actions artifact named **ZoneQuestGuide**, providing a clean download instead of relying on GitHub's automatic `ZoneQuestGuide-main.zip` source archive.
+
+* **Improved** the package layout so the generated artifact contains a top-level `ZoneQuestGuide/` addon folder and excludes repository-only `.git` and `.github` metadata.
+
+* **Added** GitHub Release packaging support. When a GitHub Release is published, the workflow builds and attaches a versioned package such as `ZoneQuestGuide-0.2.15.zip`.
+
+* **Changed** installation documentation to explain that GitHub's built-in **Code -> Download ZIP** filename cannot be customized; players should use the packaged Actions artifact or a versioned GitHub Release ZIP for the clean addon folder/name.
+
+*The GitHub Actions packaging job completed and its generated ZIP structure was inspected: it contains a top-level `ZoneQuestGuide/` folder with the addon files and bundled libraries. The packaged download has not yet been launched in World of Warcraft, so in-game package verification is still required. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
+**VERSION 0.2.14 - August 16, 2026 - Available on GitHub**
+
+* **Added** account-wide map/quest learning that records the live `UiMapID`, WoW map name, faction, quest ID/name, completion support, and how the quest was observed (available, offered, accepted, active, or turned in). Unlike phase learning, this collector does not require a known Zidormi timeline, so it can discover map aliases while the player quests normally.
+
+* **Added** `/zq maps` to show the current map ID/name and recorded quest count, plus `/zq mapexport` for a copyable `ZQGMAPQUESTDATA|1` report. `/zq export` now combines the existing phase-learning report with the new map/quest block so community submissions can include both kinds of evidence without collecting character names, realms, GUIDs, guild names, or account identifiers.
+
+* **Fixed** current Midnight Quel'Thalas detection using live Retail values observed in-game. `C_Map.GetBestMapForUnit("player")` returned **2537 / Quel'Thalas** in the current Midnight world and **95 / Ghostlands** in the old Burning Crusade version. Map 2537 is now a reliable **PRESENT / Midnight Quel'Thalas** signal; map 95 remains the old **PAST / Burning Crusade Quel'Thalas** state.
+
+* **Improved** future timeline research by keeping map/quest evidence separate from curated phase requirements. A quest seen on a map is stored as evidence and is not automatically treated as map-exclusive or phase-exclusive.
+
+*The live map IDs 2537 (current Midnight Quel'Thalas) and 95 (old Ghostlands) were observed in-game. The new v0.2.14 automatic map/quest collection, `/zq maps`, `/zq mapexport`, combined `/zq export`, and automatic PRESENT/PAST display using those values still need in-game testing after updating. Verify quests are stored under the correct map when moving through the Thalassian Pass portal, and confirm existing phase learning, navigation, contribution prompts, and Wago telemetry continue to behave normally. Zone Quest Guide still has no published Wago release, so Wago is not yet listed as an available distribution platform.*
+
+---
+
+**VERSION 0.2.13 - August 16, 2026 - Available on GitHub**
+
+* **Added** direct old/current map detection for Midnight Quel'Thalas. Zone Quest Guide now treats Midnight **Silvermoon City** (`2393`) and **Eversong Woods** (`2395`) as the PRESENT timeline, while the legacy Burning Crusade Eversong/Ghostlands/Silvermoon map IDs are treated as the PAST timeline. Name fallbacks also recognize `Ghostlands`, `Ghostlands (Burning Crusade)`, `Eversong Woods (Burning Crusade)`, and the corresponding Silvermoon naming if WoW exposes them.
+
+* **Fixed** Quel'Thalas timeline state becoming dependent on a Zidormi conversation. The live game behavior observed by the player shows that the Thalassian Pass portal itself can move the character into the old Burning Crusade area, while Zidormi's historical option also teleports the character there. Because a portal transition can happen without a gossip click, Zone Quest Guide now trusts the actual old/current map identity over a cached Zidormi session value.
+
+* **Improved** automatic timeline display in the rebuilt Midnight zones. A character standing in current Midnight Eversong Woods or Silvermoon City can now be identified as **PRESENT / Midnight Quel'Thalas** from the map alone, while entering the legacy Ghostlands/Eversong maps can identify **PAST / Burning Crusade Quel'Thalas** without requiring another Zidormi conversation.
+
+* **Improved** portal-driven phase refreshing. Player/world/zone transitions now re-run the full timeline refresh so quest filtering, phase learning, the Timeline line, and Wago phase telemetry can all see a map-derived timeline change even when no gossip option was selected.
+
+*The player confirmed in-game that current Midnight Silvermoon City leads into the rebuilt Eversong Woods and that the Thalassian Pass portal can enter the old Burning Crusade area; talking to Zidormi there can also transport the character into the old zone. The new v0.2.13 automatic PRESENT/PAST detection across those portal transitions still needs in-game verification after updating. Confirm the label changes correctly in both directions, `/zq learn` follows the detected map timeline, and no stale Zidormi state remains after using the portal. Zone Quest Guide still has no published Wago release, so Wago is not yet listed as an available distribution platform.*
+
+---
+
+**VERSION 0.2.12 - August 16, 2026 - Available on GitHub**
+
+* **Added** a central Retail timeline-zone registry covering the known Zidormi/Rhonormu world-state switches: Dustwallow Marsh/Theramore, Blasted Lands, Peak of Serenity, Silithus, Darkshore, Tirisfal Glades/Undercity, Arathi Highlands, Uldum, Vale of Eternal Blossoms, and the newer Quel'Thalas switch for Eversong Woods/Ghostlands at Thalassian Pass. Silithus also recognizes Rhonormu as a valid timeline NPC.
+
+* **Fixed** phased zones that could look like ordinary zones until the player first spoke to Zidormi. Darkshore in particular can use several Retail map IDs; Zone Quest Guide now recognizes known alternate map IDs and can also match the live map/subzone name, so the **Timeline: UNKNOWN - talk to Zidormi before questing.** warning can appear before questing starts.
+
+* **Improved** timeline switching across alternate map IDs by keeping the detected PAST/PRESENT state under the logical zone timeline instead of tying the session state to only one UiMapID. Related areas such as Teldrassil/Darnassus and Undercity can share the appropriate Darkshore or Tirisfal timeline state without receiving a misleading same-map Zidormi waypoint.
+
+* **Improved** Zidormi gossip detection for historical options whose wording does not literally contain "before" or "past". Known timeline NPC interactions can now also recognize phrases such as **show me**, **relive**, **during**, and **age of**, which is needed for locations such as Uldum and the Burning Crusade-era Eversong Woods/Ghostlands switch.
+
+* **Changed** Peak of Serenity detection to use the actual Peak of Serenity subzone rather than marking all of Kun-Lai Summit as a timeline zone. The new Quel'Thalas switch likewise warns players to visit Zidormi at Thalassian Pass instead of creating a false local waypoint inside Eversong Woods or Ghostlands.
+
+*Darkshore switching was observed in-game in the player's recording: the label changed between PAST and PRESENT after the Zidormi selection, and WoW displayed its normal fade/phase-transition effect. The new v0.2.12 registry, pre-conversation warning on alternate map IDs, additional zones, broader gossip wording, Rhonormu handling, and cross-map timeline state still require in-game testing. Zone Quest Guide still has no published Wago release, so Wago is not yet listed as an available distribution platform.*
+
+---
+
+**VERSION 0.2.11 - August 16, 2026 - Available on GitHub**
+
+* **Added** Darkshore (UiMapID 62) to Zone Quest Guide's historical-timeline zone list so the main window now recognizes Darkshore as a Zidormi-controlled phased zone instead of treating it like an ordinary single-timeline zone.
+
+* **Added** Darkshore player-facing timeline labels for **PAST / Before War of the Thorns** and **PRESENT / After War of the Thorns**, plus the configured Zidormi location near 48.4, 25.0 for timeline guidance.
+
+* **Improved** phase-learning safety in Darkshore. Until Zone Quest Guide has a reliable timeline signal, the main panel can now show **Timeline: UNKNOWN - talk to Zidormi before questing.** Once Zidormi offers the before-the-battle or return-to-present option, the existing generic Zidormi detector can classify the timeline and allow phase learning to record under the correct phase.
+
+* **Changed** Darkshore support to track the old-versus-current Zidormi timeline only. This does not yet attempt to distinguish every Battle for Darkshore warfront ownership/state variant inside the present-era version.
+
+*In-game testing is still required in Darkshore. After updating, enter Darkshore and verify the timeline warning appears before talking to Zidormi, then talk to Zidormi near 48.4, 25.0 and confirm the label changes to the correct PAST or PRESENT value. Switch timelines once and verify the label updates without a second conversation, `/zq learn` records under the new phase, and Wago telemetry continues to use only strong phase evidence.*
+
+---
+
+**VERSION 0.2.10 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** the initial Wago Analytics integration to follow Wago's documented shim-based setup instead of talking directly to the optional global analytics provider. Zone Quest Guide now bundles Wago's official `WagoAnalytics` shim and registers project `EGPeM3N1` through `LibStub("WagoAnalytics"):Register(...)` when the addon loads.
+
+* **Added** bundled `LibStub` support so the Wago shim can load safely even when the player does not have another addon that already provides LibStub. The official Wago shim and its MIT license are included under `libs/WagoAnalytics/`.
+
+* **Improved** `/zq wago` status reporting so it distinguishes between the configured/shim-ready state and the real `WagoAnalytics` addon actually being loaded. The command no longer claims that the player's Wago App data-sharing setting can be verified from WoW Lua; it explicitly notes that uploading still depends on the Wago App setting.
+
+* **Changed** Wago registration timing to happen during addon loading, matching Wago's guidance that registration should occur at the beginning of the game session rather than waiting for a later gameplay event.
+
+*In-game testing is still required. After Analytics is activated for the Wago project and the Wago App has Analytics data sharing enabled, verify `/zq wago` reports project `EGPeM3N1` with the WagoAnalytics addon loaded, then generate a strong phased quest observation and confirm it reaches the Wago Analytics development dashboard. Zone Quest Guide still has no published Wago release, so Wago is not yet listed as an available distribution platform.*
+
+---
+
+**VERSION 0.2.9 - August 16, 2026 - Available on GitHub**
+
+* **Added** the assigned Wago project ID (`EGPeM3N1`) to `ZoneQuestGuide.toc` as `X-Wago-ID`, allowing the existing Wago telemetry bridge to register observations against the correct Zone Quest Guide project.
+
+* **Changed** Wago setup from a placeholder/no-project state to a real configured project. `/zq wago` can now distinguish between a configured project whose Wago Analytics client is available and a configured project where the Wago App/Analytics data sharing is still unavailable.
+
+* **Improved** the Wago rollout path by keeping `WagoAnalytics` optional. Players who do not use the Wago App can continue using Zone Quest Guide normally, while players who opt in to Wago Analytics can contribute the stronger anonymous phase evidence already defined in v0.2.7.
+
+*The Wago project now exists and the project ID is configured in the addon, but Wago Analytics still needs to be activated on the project's Analytics tab and the developer/client Wago App needs Analytics data sharing enabled before telemetry can be verified. In-game testing is still required for `/zq wago` and actual evidence delivery. Zone Quest Guide has not yet published a Wago release, so Wago is not yet listed as an available distribution platform.*
+
+---
+
+**VERSION 0.2.8 - August 16, 2026 - Available on GitHub**
+
+* **Changed** the phase-data contribution destination from the temporary GitHub issue page to the dedicated ZoneQuestGuide Google Form supplied for community submissions.
+
+* **Improved** the contribution popup wording so players are told to open the Google Form, paste the anonymous `/zq export` report, and submit it. The URL field is now labeled **Google Form URL** while keeping the existing **Open Export**, **Select URL**, and **Later** controls.
+
+* **Changed** `/zq contribute` and automatic contribution reminders to show `https://forms.gle/Gnqf8kN44kDZxMs86` as the current manual submission destination.
+
+*The Google Form link has been wired into the addon but the full in-game contribution flow has not yet been tested. Verify `/zq contribute` shows the correct form URL, **Select URL** highlights it for copying, **Open Export** still opens the phase report, and a test submission can be pasted into the form successfully. The Wago telemetry bridge from v0.2.7 is still awaiting a Wago project ID and in-game testing; Wago is not yet listed as an available distribution platform.*
+
+---
+
+**VERSION 0.2.7 - August 16, 2026 - Available on GitHub**
+
+* **Added** a Wago Analytics telemetry bridge for anonymous community phase evidence. When Zone Quest Guide is later assigned a Wago project ID and the player's Wago App has Analytics data sharing enabled, the addon can report phase-aware quest observations through the optional WagoAnalytics addon.
+
+* **Added** `/zq wago` (also `/zq telemetry`) to show whether the Wago project ID is configured and whether the WagoAnalytics bridge is active on the current client.
+
+* **Changed** automatic Wago reporting to use only stronger timeline evidence: quests WoW reports as available in the current phase, quests actually offered by an NPC, active quests shown by an NPC, and quests turned in in that phase. Accepted-quest map scans are deliberately excluded because an accepted quest can remain in the quest log after the player changes timelines and therefore is not reliable proof that the quest exists in both versions.
+
+* **Improved** community-data privacy by limiting Wago metric keys to map ID, faction, phase, quest ID, evidence type, and whether the phase came from Zidormi or curated automatic detection. Character names, realm names, guild names, GUIDs, and manual phase overrides are not sent by this bridge.
+
+* **Changed** the addon metadata to treat WagoAnalytics as an optional dependency. Zone Quest Guide continues to work normally without the Wago App or WagoAnalytics installed.
+
+*The Wago telemetry bridge is prepared but is not active yet because Zone Quest Guide has not been published on Wago and therefore does not yet have an `X-Wago-ID`. In-game testing is still required after a Wago project is created, Analytics is enabled for that project, the project ID is added to the TOC, and the Wago App is configured for Analytics data sharing. Wago is not yet listed as an available distribution platform.*
+
+---
+
+**VERSION 0.2.6 - August 16, 2026 - Available on GitHub**
+
+* **Added** a contribution reminder for phase-learning data. After Zone Quest Guide has collected useful quest observations in a known historical timeline, it can now show a small **Help improve Zone Quest Guide** window reminding the player to run `/zq export`, copy the anonymous phase report, and submit it through the listed contribution page.
+
+* **Added** `/zq contribute` so the contribution instructions can be reopened at any time without waiting for the automatic reminder.
+
+* **Added** a copyable contribution URL field and **Open Export** button. The initial contribution page points to the ZoneQuestGuide GitHub issue form/page, and the URL is kept in one configurable addon value so it can be changed later to a Google Form/Drive-backed submission page or another community endpoint.
+
+* **Improved** reminder behavior so it does not pop up after every quest. The reminder is limited to once per map/faction/timeline during a login session, appears after a turn-in once phase data exists, and can also appear after several quest pickups have already created a useful observation set.
+
+* **Changed** community contribution prompting to remain manual and privacy-conscious. The addon still does not upload anything automatically; the player chooses whether to export and submit the already-anonymous phase-learning report.
+
+*In-game testing is still required to confirm the contribution window appears after useful phased quest data is recorded, does not repeatedly interrupt the player, `/zq contribute` reopens it, **Open Export** opens the phase export correctly, and the copyable URL field behaves normally in the WoW UI.*
+
+---
+
+**VERSION 0.2.5 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** timeline switching that could remain on the previous Blasted Lands phase until the player talked to Zidormi again. The earlier implementation primarily waited for WoW to report a phase-transition event after the Zidormi interaction; the player's in-game screenshots and recordings showed that this was not reliably updating the addon immediately after the switch.
+
+* **Added** an explicit phased-zone warning directly below the current zone name when Zone Quest Guide knows the zone has historical versions but cannot yet identify the active one: **Timeline: UNKNOWN - talk to Zidormi before questing.** This is intended to make the phase-learning requirement clear before the player starts collecting quest observations in that zone.
+
+* **Improved** Zidormi synchronization by watching the actual timeline gossip option selected by the player. When the configured Zidormi switch option is chosen, Zone Quest Guide now updates its session timeline to the destination phase and refreshes the timeline label, phase filters, learning state, and navigation again after the world state has had a short moment to settle.
+
+* **Changed** closing Zidormi without selecting the timeline-switch option to remain non-destructive. A plain gossip close does not flip the recorded timeline; only the recognized switch selection does.
+
+* **Improved** compatibility with the existing v0.2.4 Timeline line by reusing that line directly below the zone name rather than adding a second phase label.
+
+*The behavior that motivated this release was observed in-game: the timeline label appeared after talking to Zidormi, and after changing phases the addon could require another Zidormi conversation before its displayed timeline caught up. v0.2.5 still needs in-game testing to confirm both switch directions update immediately, the UNKNOWN warning appears before phase confirmation, closing Zidormi without switching does not change phase, and phase-learning data begins recording under the new phase after a switch.*
+
+---
+
+**VERSION 0.2.4 - August 16, 2026 - Available on GitHub**
+
+* **Added** automatic timeline detection from curated phase-exclusive quests. When WoW reports a known phase-specific quest as active on the current map or as an available quest-line starter, Zone Quest Guide can use that live quest evidence to identify the historical version without requiring a new Zidormi conversation every session.
+
+* **Improved** Blasted Lands detection for the currently mapped Iron Horde quests. **Under Siege** and **Attack of the Iron Horde** are known PRESENT/Iron-Horde quests, so either quest can now establish the Blasted Lands timeline as PRESENT when WoW exposes it on the current map.
+
+* **Added** a dedicated **Timeline** line directly below the current zone name in the main Zone Quest Guide window. Supported zones can now show player-facing text such as **PRESENT / Iron Horde (quest detected)**, **PAST / Before invasion (Zidormi)**, or **UNKNOWN (auto)** instead of hiding the phase state inside the zone subtitle.
+
+* **Improved** phase learning so a curated quest-based detector can provide the reliable phase signal needed to record other live quest evidence. This lets the account-wide Horde/Alliance learning database continue gathering useful data even when the player has not spoken to Zidormi during the current login session.
+
+* **Changed** quest-based timeline inference to stay conservative. Manual overrides and Zidormi remain stronger signals, and if curated live quest evidence points to conflicting phases at the same time, Zone QuestGuide does not guess from that quest evidence.
+
+*In-game testing is still required for the new automatic quest-based detector and Timeline line. In PRESENT Blasted Lands, reload with **Under Siege** or **Attack of the Iron Horde** active without first talking to Zidormi and verify the panel reports **PRESENT / Iron Horde (quest detected)**, `/zq phase` identifies the evidence quest, phase learning records under PRESENT, and the existing navigation UI remains positioned correctly.*
+
+---
+
+**VERSION 0.2.3 - August 16, 2026 - Available on GitHub**
+
+* **Added** account-wide local phase learning. When Zone Quest Guide already knows the current historical version of a map from Zidormi, a configured detector, or a manual phase override, it now records live WoW quest evidence for that map and phase.
+
+* **Added** Horde/Alliance-separated learning data so multiple unquested alts can help map the same phased zone without mixing faction-specific quest observations together. The data is stored in the existing account-wide `ZoneQuestGuideDB` SavedVariable.
+
+* **Added** evidence tracking for quests reported as available, offered by an NPC, accepted on the map, active at an NPC, accepted while the phase is known, and turned in while the phase is known. Completion is stored as supporting information but is not treated as proof that the quest belongs to the phase currently being viewed.
+
+* **Added** `/zq learn` to show the current map's phase-learning status and `/zq export` to open a copyable phase-data report for testing/community contributions.
+
+* **Improved** privacy of community data collection. The export intentionally contains zone IDs, faction, phase, quest IDs/names, observation counts, and phase-source information without character names, realm names, or character GUIDs.
+
+* **Changed** phase learning to be evidence-only rather than automatically rewriting the official quest-phase database. A quest seen in one phase may still be available in another phase under different prerequisites, so learned data should be reviewed before it becomes a curated `QuestPhaseRequirements` entry.
+
+* **Changed** community reporting to an explicit export workflow. The WoW addon itself does not silently upload data to GitHub or another server; automatic reporting would require a separate optional companion uploader outside the addon.
+
+*In-game testing is still required to confirm phase observations accumulate correctly across Horde and Alliance alts, `/zq export` produces copyable data, quest acceptance/turn-in evidence is recorded under the correct timeline, and no character-identifying information appears in the export.*
+
+---
+
+**VERSION 0.2.2 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** a repeated Lua error from the floating navigation HUD when Retail WoW returned `GetUnitSpeed("player")` as a secret number. The HUD was comparing that protected value to a normal number while calculating ETA, which tainted execution and produced `attempt to compare local 'speed' (a secret number value...)` from `NavigationHUD.lua`.
+
+* **Changed** the navigation HUD to stop reading player movement speed for ETA calculations. The HUD continues to show the selected quest, quest status, rotating direction arrow, and distance in yards when usable map/world-position data is available.
+
+* **Improved** compatibility with Retail's protected/secret-value behavior by avoiding arithmetic and comparisons involving the movement-speed return value instead of trying to work around a protected value.
+
+* **Confirmed** from the player's in-game Zidormi dialog that **"Show me the Blasted Lands before the invasion."** corresponds to the character currently being in the **PRESENT / Iron Horde** version of Blasted Lands. The player also reported visible objectives for **Under Siege** in that phase, matching the phase requirement currently assigned to that quest.
+
+*In-game testing is still required after updating to confirm the secret-number error no longer occurs, the distance display continues updating normally, and the timeline-switch arrow still behaves correctly after switching between Blasted Lands phases.*
+
+---
+
+**VERSION 0.2.1 - August 16, 2026 - Available on GitHub**
+
+* **Added** timeline-switch navigation guidance. When Zone Quest Guide knows the selected quest belongs to a different historical version of the current zone, the existing floating navigation HUD can now switch from the quest objective to the zone's timeline-switch NPC and display **SWITCH TIMELINE** instead of directing the player toward an unavailable objective.
+
+* **Added** initial Blasted Lands Horde phase requirements for **Attack of the Iron Horde** and **Under Siege**. These quests are marked as requiring the present/Iron-Horde-incursion version of Blasted Lands. If Zidormi detection says the character is in the past version, the navigation HUD points to Zidormi and tells the player to switch to **PRESENT**.
+
+* **Added** Blasted Lands Zidormi navigation data at the northern border so the timeline warning can be an actual directional arrow rather than only a text message.
+
+* **Improved** phase-aware navigation so, after the player changes to the required timeline and Zone Quest Guide refreshes, the same HUD can return to the real quest target automatically.
+
+*In-game testing is still required to confirm the HUD changes to **SWITCH TIMELINE**, points accurately to Zidormi in Blasted Lands, and returns to the quest target after changing phases. The Zidormi location and the Horde quest phase requirements are based on known game data, but the new v0.2.1 behavior has not yet been verified in-game.*
+
+---
+
+**VERSION 0.2.0 - August 16, 2026 - Available on GitHub**
+
+* **Added** a new floating navigation HUD inspired by the large directional arrows used by full quest-guide addons. The HUD stays on screen independently of the main Zone Quest Guide window and shows the selected quest, its current status, and a large directional arrow.
+
+* **Improved** directional navigation with a smoothly rotating drawn arrow instead of relying on Unicode arrow characters. The new HUD builds the arrow from WoW line regions, so it should avoid the missing-glyph/square problem seen with the original font-based indicator while also giving the player a much easier direction to follow at a glance.
+
+* **Added** distance and travel-time information to the floating navigation HUD. When WoW exposes enough map/world-position information for the selected quest, Zone Quest Guide estimates the remaining distance in yards. While the character is moving, it also estimates travel time from the current movement speed. Quests without usable world-position data continue to show normal tracking information instead.
+
+* **Added** **Shift-drag** positioning for the floating arrow. Its position is saved between sessions. `/zq arrow` toggles it and `/zq arrow reset` restores the default position.
+
+* **Improved** navigation while using flight paths. WoW can report intermediate zone changes while a taxi flies across several maps, which could make a quest guide briefly replace the go-to destination with a quest from a zone the player was only passing over. Zone Quest Guide now keeps its floating HUD and addon-owned destination on the last stable quest while a taxi crosses into another map, then refreshes for the zone where the character actually lands.
+
+  The main quest list still uses the older Core zone-refresh behavior and may visibly change while flying. This release specifically stabilizes the navigation target and go-to waypoint so a short flyover does not steal the destination marker.
+
+*In-game testing is still required for the new floating arrow, smooth rotation, yard-distance conversion, ETA display, saved HUD position, and flight-path target hold. The existing automatic zone refresh was observed working in-game, but the new v0.2.0 navigation behavior has not yet been verified in-game.*
+
+---
+
+**VERSION 0.1.10 - August 16, 2026 - Available on GitHub**
+
+* **Added** automatic Zidormi phase detection for historical-version zones. When the player talks to Zidormi, Zone Quest Guide now reads the gossip option she is offering and uses that as a strong clue for which version of the zone the character is currently standing in.
+
+* **Improved** Blasted Lands phase handling based on the in-game Zidormi wording observed during testing. If Zidormi offers **"Take me back to the present."**, Zone Quest Guide treats the current version as **PAST**. If Zidormi instead offers to show the zone **before** an invasion/event or otherwise travel to the past, the character is currently in the **PRESENT** version.
+
+  Previously, the phase framework could refresh when WoW reported a phase-related change, but it still needed a zone-specific detector or manual override to know which phase was actually active. Zidormi's own gossip option gives a much stronger clue because the destination she offers is the opposite of the current timeline.
+
+* **Improved** phase switching after a Zidormi interaction. Zone Quest Guide remembers the phase Zidormi is offering to switch to for a short period. If WoW then reports a phase transition, the addon updates its session's detected phase to that destination. Merely closing Zidormi's gossip window does not change the detected phase.
+
+* **Added** a **(Zidormi)** source label to the phase badge so the player can tell when the current **PAST** or **PRESENT** phase was identified from a Zidormi conversation rather than a manual override.
+
+*In-game testing is still required to confirm the addon receives the expected Zidormi gossip text through WoW's gossip API and that the phase badge flips correctly after selecting the phase-switch option. The visible Blasted Lands Zidormi wording was confirmed in-game, but the new addon detection code has not yet been verified in-game.*
+
+---
+
+**VERSION 0.1.9 - August 16, 2026 - Available on GitHub**
+
+* **Added** time-phase awareness for zones that can exist in more than one historical version.
+
+  Zone Quest Guide now treats historical phases as a quest filter rather than another quest category. Live quests supplied by WoW continue to come from the character's active world state, while supplemental database records can be tagged with a phase such as `past` or `present`. Phase-tagged supplemental quests that do not match the selected phase are excluded so the addon does not direct the player toward an NPC that only exists in another version of the zone.
+
+* **Added** per-zone phase overrides with `/zq phase`, `/zq phase auto`, `/zq phase past`, and `/zq phase present`. These overrides are intended as a fallback for phased zones where the client does not expose enough information for Zone Quest Guide to identify the historical version reliably on its own.
+
+* **Improved** phase-sensitive refreshing. Zone Quest Guide now treats zone changes, quest-log changes, gossip closing, and WoW phase-change events as signals to rebuild phase-sensitive supplemental quest data and refresh the guide.
+
+* **Changed** unknown phase handling to be conservative. If a supplemental quest is explicitly tagged for a historical phase and Zone Quest Guide cannot determine which phase is active, that static quest is hidden instead of risking a waypoint into the wrong version of the zone.
+
+*In-game testing is still required in zones with historical/time phases. Zone-specific automatic phase detectors and phase-tagged quest data still need to be added as those zones are mapped.*
+
+---
+
+**VERSION 0.1.8 - August 16, 2026 - Available on GitHub**
+
+* **Added** a separate **DAILY QUESTS** section so repeatable daily quests no longer appear mixed together with normal one-time zone progression quests.
+
+  WoW exposes daily information through several quest sources, including current-map quest data, available quest-line information, the quest log, and NPC gossip quest data. Zone Quest Guide now combines those signals to identify daily quests and place them in their own section. This should make it much clearer which quests advance permanent zone completion and which quests are repeatable daily content.
+
+* **Changed** automatic quest priority so normal **ZONE QUESTS** remain ahead of **DAILY QUESTS**. Within each section, the existing order is preserved: **AVAILABLE** first, then **TURN IN**, then **IN PROGRESS**. This prevents a nearby repeatable daily from pulling the navigation target away from unfinished one-time zone quests.
+
+* **Improved** the main Zone Quest Guide window with visible **ZONE QUESTS** and **DAILY QUESTS** section headings and additional vertical space for the separated layout.
+
+* **Improved** daily completion handling by relying on WoW's reset-aware completion state. A daily completed during the current reset can disappear from the unfinished list and become eligible to appear again after a later daily reset when WoW reports it as available again.
+
+*In-game testing is still required to confirm daily quests are classified into the correct section across accepted, available, completed, and NPC-gossip states, and that normal zone quests remain the preferred automatic navigation target.*
+
+---
+
+**VERSION 0.1.7 - August 16, 2026 - Available on GitHub**
+
+* **Added** a new **TURN IN** quest status. Accepted quests whose objectives are complete now change from **IN PROGRESS** to **TURN IN**, making it much easier to see which quests are ready to hand back to an NPC.
+
+* **Improved** quest-status priority. **AVAILABLE** quests remain first as requested, completed **TURN IN** quests are shown next, and normal **IN PROGRESS** quests follow after them. If there are no available quests, automatic quest selection can therefore fall back to a completed quest before choosing one that still has unfinished objectives.
+
+* **Improved** status consistency across the quest-priority and location-hint systems so a completed quest does not get changed back to **IN PROGRESS** when another part of the Zone Quest Guide window refreshes.
+
+*In-game testing is still required to confirm quests switch to **TURN IN** immediately when their objectives become complete and return to the normal list flow after being handed in.*
+
+---
+
+**VERSION 0.1.6 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** the minimap/world-map destination not always changing cleanly when Zone Quest Guide switched from one available quest to another.
+
+  Zone Quest Guide uses Blizzard user waypoints for quests that have not been accepted yet. The addon could select a new quest internally while the previous user waypoint was still the active destination, which made the minimap appear to keep pointing at the old quest giver. Zone Quest Guide now tracks the waypoint it created, removes that old destination when the selected available quest changes, and creates a fresh waypoint for the new target. If the next target does not have usable coordinates, the old marker is removed instead of being left behind and pointing to the wrong place.
+
+* **Added** optional **Auto Accept** quest handling. When enabled, Zone Quest Guide can select available quests from an NPC and accept them automatically when the quest-detail page opens.
+
+* **Added** optional **Auto Turn-in** handling for completed quests. When enabled, Zone Quest Guide can select completed quests from an NPC, advance the completion screen, and claim the reward automatically when there is no meaningful reward choice.
+
+* **Added** a Zone Quest Guide options window with separate checkboxes for **Auto accept quests** and **Auto turn in completed quests**. Both options are disabled by default.
+
+* **Added** `/zq options`, `/zq autoaccept`, and `/zq autoturnin`. `/zq autocomplete` is also accepted as an alias for auto turn-in.
+
+* **Improved** quest automation safety. Holding **Shift** while interacting with an NPC temporarily bypasses automatic acceptance and turn-in without changing the saved settings. Quests with multiple reward choices are left open so the player can choose the reward manually.
+
+*In-game testing is still required for waypoint switching, automatic quest acceptance, automatic turn-in, reward-choice handling, and special quest interactions in this release.*
+
+---
+
+**VERSION 0.1.5 - August 16, 2026 - Available on GitHub**
+
+* **Added** location and elevation hints for quests where WoW's flat 2D map can make an NPC look like it is on the same level as nearby quests even when it is actually above, below, inside a cave, or on another floor.
+
+* **Improved** **Horn of the Traitor** navigation at Freewind Post. The quest is now marked **[UPPER LEVEL]** in the Zone Quest Guide list and on the current target, and hovering the quest explains that Montarr is on top of Freewind Post and that the player should follow the path uphill.
+
+  The normal WoW map waypoint only gives Zone Quest Guide a 2D map position, so it cannot reliably communicate terrain height by itself. This could make the Horn of the Traitor marker look like it belonged with the quest givers on the lower level even though Montarr is farther up the mountain. The new location-hint framework lets the addon add player-facing terrain guidance for known vertical or otherwise confusing locations without changing Blizzard's waypoint behavior.
+
+* **Added** supplemental Horde and Alliance data for **Horn of the Traitor** at Freewind Post, including the quest-giver coordinates and prerequisite from the preceding Free Freewind Post quest.
+
+*In-game testing is still required to confirm the new location badge and tooltip remain visible correctly while quest priority and auto-pointing refresh the list.*
+
+---
+
+**VERSION 0.1.4 - August 16, 2026 - Available on GitHub**
+
+* **Changed** quest priority so **AVAILABLE** quests are shown before **IN PROGRESS** quests in the Zone Quest Guide window.
+
+* **Improved** automatic navigation. Previously, accepted quests were sorted first, so the addon could keep pointing at an in-progress quest even when there was another quest nearby that the player had not picked up yet. Zone Quest Guide now prefers the nearest **AVAILABLE** quest and only falls back to an **IN PROGRESS** quest when there are no available quests in the displayed list.
+
+* **Improved** the auto-track label to better describe the new behavior: the addon now focuses on the next available quest rather than simply the nearest unfinished quest.
+
+*In-game testing is still required to confirm available-quest priority behaves correctly when several available and in-progress quests are present at the same time.*
+
+---
+
+**VERSION 0.1.3 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** the temporary quest-starter map waypoint remaining on the world map after the player accepts that quest.
+
+  Zone Quest Guide uses a normal Blizzard user waypoint to mark the NPC for an available, unaccepted quest. Once that quest is accepted, Blizzard's normal quest tracking becomes the better source for objectives, but the old starter waypoint could remain behind and make the map look like the player still needed to return to the quest giver. Zone Quest Guide now listens for the quest acceptance event and removes the matching temporary waypoint when the accepted quest is the one the addon had pointed to. When the client exposes the waypoint coordinates, the addon also compares them before clearing so it is less likely to remove an unrelated waypoint the player placed manually.
+
+* **Improved** the transition from **AVAILABLE** to **IN PROGRESS**. After accepting a quest, the quest-starter marker should disappear while the quest remains available to Blizzard's normal quest super-tracking.
+
+*In-game testing is still required to confirm the temporary waypoint is removed immediately after quest acceptance without affecting unrelated player waypoints.*
+
+---
+
+**VERSION 0.1.2 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** the navigation arrow rendering as a small square or missing-glyph box on some WoW clients. The first version used Unicode arrow characters, but the game font being used by the addon does not reliably contain those glyphs. Zone Quest Guide now keeps the directional calculation but draws the result with a normal WoW texture instead, so the navigation indicator should display consistently.
+
+* **Added** a minimap button for faster access to Zone Quest Guide. Left-clicking the button shows or hides the main window, right-clicking refreshes the current zone's quest list, and Shift-dragging moves the button around the minimap. Its position is saved between sessions.
+
+* **Added** `/zq minimap` to hide or show the minimap button.
+
+* **Added** an addon-list icon so Zone Quest Guide uses a normal map icon instead of WoW's red question-mark placeholder in the AddOn List.
+
+*In-game testing is still required for the new arrow texture, minimap positioning, and minimap controls in this release.*
+
+---
+
+**VERSION 0.1.1 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** an issue where available quests could be missing from the Zone Quest Guide window even though the character could accept them from an NPC.
+
+  Zone Quest Guide was reading `C_QuestLine.GetAvailableQuestLines()` immediately, but it was not first asking WoW to download the current map's quest-line information. Blizzard provides `C_QuestLine.RequestQuestLinesForMap()` for that purpose and reports updated information through `QUESTLINE_UPDATE`. The addon now requests the current zone's quest-line data and refreshes when WoW reports that updated information is available. Players should see more available quest starters without having to manually refresh the addon.
+
+* **Added** live quest-offer detection. When you open an NPC's gossip window or quest-detail page, Zone Quest Guide now records quests WoW says are currently available and adds them to the current session's zone list. This helps with older quests that Blizzard does not expose through the normal map quest-line API.
+
+* **Added** initial supplemental quest-chain coverage for both Horde and Alliance in Thousand Needles, including **Go Blow that Horn**, **Deliver the Goods**, and **Free Freewind Post**, with faction and prerequisite checks so the addon does not point the wrong faction toward those quests or show later quests before their prerequisites are complete.
+
+* **Improved** `/zq refresh` so it also forces a new quest-line data request for the current map.
+
+*In-game testing is still required for this release.*
+
+---
+
+**VERSION 0.1.0 - August 16, 2026 - Available on GitHub**
+
+* **Added** the first public version of Zone Quest Guide with automatic zone detection, unfinished accepted-quest tracking, available quest-line discovery, Blizzard super-tracking, user waypoints, a lightweight directional arrow, and a supplemental quest database framework.
+
+*In-game testing was required for this release.*
