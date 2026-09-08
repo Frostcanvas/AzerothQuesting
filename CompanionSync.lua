@@ -97,16 +97,22 @@ local function CurrentTime()
     return time and time() or 0
 end
 
+local function WireToken(value)
+    value = tostring(value or "")
+    value = value:gsub("[|\r\n]", "_")
+    return value
+end
+
 local function GetStore()
     ZoneQuestGuideDB = ZoneQuestGuideDB or {}
     ZoneQuestGuideDB.companionSync = ZoneQuestGuideDB.companionSync or {
-        version = 1,
+        version = 2,
         nextSequence = 1,
         observations = {},
     }
 
     local store = ZoneQuestGuideDB.companionSync
-    store.version = 1
+    store.version = 2
     store.nextSequence = tonumber(store.nextSequence) or 1
     store.observations = store.observations or {}
     return store
@@ -167,8 +173,10 @@ local function QueueQuestObservation(questID, evidence, mapID, context)
         completed = completed and true or false
     end
 
-    store.observations[#store.observations + 1] = {
-        key = string.format("%d-%d", observedAt, sequence),
+    local addonVersion = AddonVersion()
+    local key = string.format("%d-%d", observedAt, sequence)
+    local observation = {
+        key = key,
         sequence = sequence,
         type = "quest",
         source = source,
@@ -181,9 +189,29 @@ local function QueueQuestObservation(questID, evidence, mapID, context)
         level = level,
         completed = completed and true or false,
         observedAt = observedAt,
-        addonVersion = AddonVersion(),
+        addonVersion = addonVersion,
     }
 
+    -- Companion-friendly wire record. The Companion can safely extract this
+    -- fixed delimiter format from SavedVariables without executing or generally
+    -- parsing Lua. AQO1 fields contain only addon-generated tokens.
+    observation.wire = table.concat({
+        "AQO1",
+        WireToken(key),
+        WireToken(source),
+        tostring(questID),
+        tostring(mapID),
+        WireToken(evidence),
+        WireToken(faction),
+        tostring(classID),
+        WireToken(classFile),
+        tostring(level),
+        completed and "1" or "0",
+        tostring(observedAt),
+        WireToken(addonVersion),
+    }, "|")
+
+    store.observations[#store.observations + 1] = observation
     PruneQueue(store)
     return true
 end
