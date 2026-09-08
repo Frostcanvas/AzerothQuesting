@@ -1,5 +1,22 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.2.31 - September 8, 2026 - Available on GitHub**
+
+* **Added** the first **Azeroth Questing Network** client layer. Retail clients register the `AZQUEST` addon-message prefix and automatically join the temporary custom channel `AzerothQuesting`. The channel is joined without adding protocol traffic to normal chat, while `/aq network` reports whether the prefix and custom channel are active.
+
+* **Added** anonymous peer quest-evidence exchange for `available`, `offered`, `active`, and `turnedIn` observations. Messages carry only protocol version, quest ID, map ID, faction, class ID/token, completion state, and evidence type; sender names are not written to SavedVariables or the Companion queue.
+
+* **Added** a bounded Companion synchronization queue in SavedVariables. Local and accepted peer quest observations are queued with a stable observation key, timestamp, addon version, quest/map/evidence context, faction, class ID/token, level, and completion state so the future **Azeroth Questing Companion** can upload structured records to the Service01 API after WoW writes `AzerothQuesting.lua`.
+
+* **Added** per-class quest learning. New observations now preserve WoW class ID/token counts (for example `MAGE`, `SHAMAN`, or `DRUID`) under each learned quest so server-side research can compare which classes actually observed a quest instead of mixing every class into one total.
+
+* **Changed** the map-learning store to schema version 2 and the tab-separated map/quest export to `ZQGMAPQUESTDATA|3`, adding `classID` and `classFile` columns. Historical observations created before v0.2.31 remain labeled `UNKNOWN` rather than being incorrectly assigned to the class that first logs in after the update.
+
+* **Improved** Retail Midnight chat-lockdown handling by checking Blizzard's outgoing addon-message restriction APIs before network sends and queueing transient throttle/lockdown failures for retry. The in-game custom channel supplements the Companion/Service01 path; it is not a replacement for global server synchronization and is limited by WoW's custom-channel reach.
+
+*This v0.2.31 network, class-learning, and Companion-queue update has not been tested in World of Warcraft. After updating, `/reload` and verify there are no Lua errors; open the Chat Channels pane and look for `AzerothQuesting` under custom channels; run `/aq network` and confirm `AZQUEST` is registered and the channel is joined; run `/aq sync` before and after interacting with quests to verify the queue count rises; use `/aq mapexport` and confirm new rows include the logged-in class ID/token. If a second Retail client with v0.2.31 is available on the same connected-realm custom-channel scope, verify `received`/`peers` can increase without protocol text appearing in normal chat. Also retest the still-outstanding v0.2.29 rename and v0.2.28 breadcrumb behavior. GitHub remains the only listed distribution platform because no downloadable Wago release has been published.*
+
+---
 **VERSION 0.2.30 - September 8, 2026 - Available on GitHub**
 
 * **Improved** GitHub packaging with a stable player-facing `AzerothQuesting.zip` download that contains a top-level `AzerothQuesting/` addon folder, so players do not have to rename the `AzerothQuesting-main` folder created by GitHub's built-in source ZIP.

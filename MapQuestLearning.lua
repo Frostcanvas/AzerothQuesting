@@ -3,12 +3,12 @@ local ADDON_NAME, ZQG = ...
 local function GetStore()
     ZoneQuestGuideDB = ZoneQuestGuideDB or {}
     ZoneQuestGuideDB.mapQuestLearning = ZoneQuestGuideDB.mapQuestLearning or {
-        version = 1,
+        version = 2,
         maps = {},
     }
 
     local store = ZoneQuestGuideDB.mapQuestLearning
-    store.version = 1
+    store.version = 2
     store.maps = store.maps or {}
     return store
 end
@@ -38,6 +38,31 @@ local function PlayerFaction()
         return UnitFactionGroup("player") or "Neutral"
     end
     return "Neutral"
+end
+
+local function PlayerClass()
+    if ZQG.GetPlayerClassContext then
+        return ZQG.GetPlayerClassContext()
+    end
+
+    if UnitClass then
+        local ok, _, classFile, classID = pcall(UnitClass, "player")
+        if ok then
+            if canaccessvalue then
+                if classFile ~= nil and not canaccessvalue(classFile) then
+                    classFile = nil
+                end
+                if classID ~= nil and not canaccessvalue(classID) then
+                    classID = nil
+                end
+            end
+            if type(classFile) == "string" and classFile ~= "" and type(classID) == "number" then
+                return classID, classFile
+            end
+        end
+    end
+
+    return 0, "UNKNOWN"
 end
 
 local function IsOnTaxi()
@@ -102,6 +127,7 @@ local function EnsureQuestRecord(mapID, faction, questID, name)
         accepted = 0,
         active = 0,
         turnedIn = 0,
+        classes = {},
     }
 
     local quest = factionData.quests[questID]
@@ -110,7 +136,30 @@ local function EnsureQuestRecord(mapID, faction, questID, name)
         quest.completed = true
     end
 
+    quest.classes = quest.classes or {}
     return quest
+end
+
+local function EnsureClassRecord(quest)
+    local classID, classFile = PlayerClass()
+    quest.classes = quest.classes or {}
+    quest.classes[classFile] = quest.classes[classFile] or {
+        classID = classID,
+        completed = false,
+        seen = 0,
+        available = 0,
+        offered = 0,
+        accepted = 0,
+        active = 0,
+        turnedIn = 0,
+    }
+
+    local record = quest.classes[classFile]
+    record.classID = classID
+    if IsCompleted and quest.completed then
+        record.completed = true
+    end
+    return record, classID, classFile
 end
 
 local function RecordMapQuestEvidence(questID, name, evidence, mapID)
@@ -125,11 +174,21 @@ local function RecordMapQuestEvidence(questID, name, evidence, mapID)
 
     local faction = PlayerFaction()
     local quest = EnsureQuestRecord(mapID, faction, questID, name)
+    local classRecord, classID, classFile = EnsureClassRecord(quest)
 
     local seenKey = EvidenceKey(mapID, faction, questID, "seen")
     if not sessionEvidence[seenKey] then
         sessionEvidence[seenKey] = true
         quest.seen = (quest.seen or 0) + 1
+        classRecord.seen = (classRecord.seen or 0) + 1
+        if ZQG.QueueCompanionQuestObservation then
+            ZQG.QueueCompanionQuestObservation(questID, "seen", mapID, {
+                faction = faction,
+                classID = classID,
+                classFile = classFile,
+                completed = quest.completed and true or false,
+            })
+        end
     end
 
     evidence = evidence or "seen"
@@ -138,6 +197,21 @@ local function RecordMapQuestEvidence(questID, name, evidence, mapID)
         if not sessionEvidence[evidenceKey] then
             sessionEvidence[evidenceKey] = true
             quest[evidence] = (quest[evidence] or 0) + 1
+            classRecord[evidence] = (classRecord[evidence] or 0) + 1
+            if quest.completed then
+                classRecord.completed = true
+            end
+            if ZQG.QueueCompanionQuestObservation then
+                ZQG.QueueCompanionQuestObservation(questID, evidence, mapID, {
+                    faction = faction,
+                    classID = classID,
+                    classFile = classFile,
+                    completed = quest.completed and true or false,
+                })
+            end
+            if ZQG.BroadcastMapQuestEvidence then
+                ZQG.BroadcastMapQuestEvidence(questID, evidence, mapID)
+            end
         end
     end
 
@@ -271,9 +345,28 @@ end
 local function BuildMapQuestExport()
     local store = GetStore()
     local lines = {
-        "ZQGMAPQUESTDATA|2",
-        "# mapID\tmapName\tfaction\tquestID\tname\tcompleted\tseen\tavailable\toffered\taccepted\tactive\tturnedIn",
+        "ZQGMAPQUESTDATA|3",
+        "# mapID\tmapName\tfaction\tclassID\tclassFile\tquestID\tname\tcompleted\tseen\tavailable\toffered\taccepted\tactive\tturnedIn",
     }
+
+    local function AppendLine(mapID, mapData, faction, questID, quest, classID, classFile, record)
+        lines[#lines + 1] = table.concat({
+            SafeField(mapID),
+            SafeField(mapData.name),
+            SafeField(faction),
+            SafeField(classID or 0),
+            SafeField(classFile or "UNKNOWN"),
+            SafeField(questID),
+            SafeField(quest.name),
+            record.completed and "1" or "0",
+            tostring(record.seen or 0),
+            tostring(record.available or 0),
+            tostring(record.offered or 0),
+            tostring(record.accepted or 0),
+            tostring(record.active or 0),
+            tostring(record.turnedIn or 0),
+        }, "\t")
+    end
 
     for _, mapID in ipairs(SortedKeys(store.maps, true)) do
         local mapData = store.maps[mapID]
@@ -281,20 +374,27 @@ local function BuildMapQuestExport()
             local factionData = mapData.factions[faction]
             for _, questID in ipairs(SortedKeys(factionData.quests or {}, true)) do
                 local quest = factionData.quests[questID]
-                lines[#lines + 1] = table.concat({
-                    SafeField(mapID),
-                    SafeField(mapData.name),
-                    SafeField(faction),
-                    SafeField(questID),
-                    SafeField(quest.name),
-                    quest.completed and "1" or "0",
-                    tostring(quest.seen or 0),
-                    tostring(quest.available or 0),
-                    tostring(quest.offered or 0),
-                    tostring(quest.accepted or 0),
-                    tostring(quest.active or 0),
-                    tostring(quest.turnedIn or 0),
-                }, "\t")
+                local classKeys = SortedKeys(quest.classes or {})
+                if #classKeys == 0 then
+                    -- Older v1 learning data did not record class context. Keep it
+                    -- visible without assigning those historical observations to
+                    -- whichever class happens to be logged in after the upgrade.
+                    AppendLine(mapID, mapData, faction, questID, quest, 0, "UNKNOWN", quest)
+                else
+                    for _, classFile in ipairs(classKeys) do
+                        local classRecord = quest.classes[classFile]
+                        AppendLine(
+                            mapID,
+                            mapData,
+                            faction,
+                            questID,
+                            quest,
+                            classRecord.classID or 0,
+                            classFile,
+                            classRecord
+                        )
+                    end
+                end
             end
         end
     end
@@ -341,7 +441,7 @@ local exportNote = exportFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlig
 exportNote:SetPoint("TOPLEFT", exportTitle, "BOTTOMLEFT", 0, -6)
 exportNote:SetWidth(630)
 exportNote:SetJustifyH("LEFT")
-exportNote:SetText("Includes tab-separated phase evidence plus map ID + quest associations. No character name, realm, GUID, guild, or account identifier is included.")
+exportNote:SetText("Includes tab-separated phase evidence plus map, quest, faction, and class ID/token observations. No character name, realm, GUID, guild, or account identifier is included.")
 
 local exportClose = CreateFrame("Button", nil, exportFrame, "UIPanelCloseButton")
 exportClose:SetPoint("TOPRIGHT", -3, -3)
