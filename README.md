@@ -1,6 +1,6 @@
 # Azeroth Questing
 
-**Version:** 0.2.29  
+**Version:** 0.2.30
 **WoW:** Retail 12.1 (`Interface: 120100`)
 
 Azeroth Questing is a lightweight World of Warcraft addon that shows unfinished quests for the current zone, points the player toward the next useful target, and learns anonymous map/quest, timeline, and instance evidence while the player quests.
@@ -22,7 +22,7 @@ Azeroth Questing is a lightweight World of Warcraft addon that shows unfinished 
 - Exports anonymous learning data with WoW-safe tab-separated fields.
 - Can forward anonymous `seen`, `available`, `offered`, `accepted`, `active`, and `turnedIn` quest evidence plus completion support through Wago Analytics when the player has Wago Analytics sharing enabled.
 - Mirrors privacy-safe map, reliable-phase, quest-evidence, and instance discoveries into Wago **Switches** so useful crowd observations remain visible while Wago's Counters dashboard is unavailable.
-- Builds a clean versioned GitHub package named **AzerothQuesting-<version>.zip** through GitHub Actions.
+- Builds a clean **AzerothQuesting.zip** player package plus a versioned **AzerothQuesting-<version>.zip** archive through GitHub Actions.
 - Includes stable `/aq phase`, `/aq maps`, `/aq mapid`, `/aq inspect`, and `/aq check` diagnostics.
 
 ## Map and quest learning
@@ -268,7 +268,7 @@ Quests with meaningful reward choices remain open for manual selection. Holding 
 
 ## GitHub ZIP packages
 
-GitHub's built-in **Code -> Download ZIP** is a source archive and uses a branch suffix such as `AzerothQuesting-main.zip`. The repository's GitHub Actions packaging workflow produces a versioned package such as **AzerothQuesting-0.2.29.zip** containing a top-level `AzerothQuesting/` addon folder.
+GitHub's built-in **Code -> Download ZIP** is a source archive and uses a branch suffix such as `AzerothQuesting-main.zip`. The repository's GitHub Actions packaging workflow produces **AzerothQuesting.zip** for normal installs and a versioned archive such as **AzerothQuesting-0.2.30.zip**. Both contain a top-level `AzerothQuesting/` addon folder, avoiding the `AzerothQuesting-main` folder created by GitHub's source ZIP.
 
 ## Rename from Zone Quest Guide
 

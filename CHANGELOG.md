@@ -1,5 +1,14 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.2.30 - September 8, 2026 - Available on GitHub**
+
+* **Improved** GitHub packaging with a stable player-facing `AzerothQuesting.zip` download that contains a top-level `AzerothQuesting/` addon folder, so players do not have to rename the `AzerothQuesting-main` folder created by GitHub's built-in source ZIP.
+
+* **Changed** GitHub Release packaging to provide both `AzerothQuesting.zip` for normal installs and `AzerothQuesting-0.2.30.zip` as the versioned archive.
+
+*This v0.2.30 packaging change has not been tested in World of Warcraft. After installing the packaged ZIP, verify the folder is `Interface/AddOns/AzerothQuesting`, the addon appears as **Azeroth Questing**, `/aq` works, and existing v0.2.29 functionality still loads without Lua errors. GitHub packaging success is a build/distribution check only and must not be treated as an in-game test. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
 **VERSION 0.2.29 - September 8, 2026 - Available on GitHub**
 
 * **Changed** the public addon name from **Zone Quest Guide** to **Azeroth Questing** and moved active development to the new `Frostcanvas/AzerothQuesting` GitHub repository. The renamed package now uses `AzerothQuesting.toc` and a top-level `AzerothQuesting/` addon folder.
