@@ -1,0 +1,113 @@
+name: One-time stable ZIP packaging update
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: github.event.head_commit.message == 'Run stable ZIP packaging update'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Update package naming and version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          toc = Path('AzerothQuesting.toc')
+          text = toc.read_text(encoding='utf-8')
+          old = '## Version: 0.2.29'
+          new = '## Version: 0.2.30'
+          if old not in text:
+              raise SystemExit('Expected v0.2.29 in AzerothQuesting.toc')
+          toc.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          workflow = Path('.github/workflows/package.yml')
+          text = workflow.read_text(encoding='utf-8')
+          old_block = '''          ZIP_NAME="AzerothQuesting-${VERSION}.zip"
+          (
+            cd package
+            zip -qr "../${ZIP_NAME}" AzerothQuesting
+          )
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "zip_name=${ZIP_NAME}" >> "$GITHUB_OUTPUT"
+'''
+          new_block = '''          STABLE_ZIP_NAME="AzerothQuesting.zip"
+          VERSIONED_ZIP_NAME="AzerothQuesting-${VERSION}.zip"
+          (
+            cd package
+            zip -qr "../${STABLE_ZIP_NAME}" AzerothQuesting
+          )
+          cp "${STABLE_ZIP_NAME}" "${VERSIONED_ZIP_NAME}"
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "stable_zip_name=${STABLE_ZIP_NAME}" >> "$GITHUB_OUTPUT"
+          echo "versioned_zip_name=${VERSIONED_ZIP_NAME}" >> "$GITHUB_OUTPUT"
+'''
+          if old_block not in text:
+              raise SystemExit('Expected package build block not found')
+          text = text.replace(old_block, new_block, 1)
+
+          old_release = '        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.package.outputs.zip_name }}" --clobber\n'
+          new_release = '        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.package.outputs.stable_zip_name }}" "${{ steps.package.outputs.versioned_zip_name }}" --clobber\n'
+          if old_release not in text:
+              raise SystemExit('Expected release upload line not found')
+          workflow.write_text(text.replace(old_release, new_release, 1), encoding='utf-8')
+
+          readme = Path('README.md')
+          text = readme.read_text(encoding='utf-8')
+          text = text.replace(
+              'Builds a clean versioned GitHub package named **AzerothQuesting-<version>.zip** through GitHub Actions.',
+              'Builds a clean **AzerothQuesting.zip** player package plus a versioned **AzerothQuesting-<version>.zip** archive through GitHub Actions.',
+              1,
+          )
+          text = text.replace(
+              "The repository's GitHub Actions packaging workflow produces a versioned package such as **AzerothQuesting-0.2.29.zip** containing a top-level `AzerothQuesting/` addon folder.",
+              "The repository's GitHub Actions packaging workflow produces **AzerothQuesting.zip** for normal installs and a versioned archive such as **AzerothQuesting-0.2.30.zip**. Both contain a top-level `AzerothQuesting/` addon folder, avoiding the `AzerothQuesting-main` folder created by GitHub's source ZIP.",
+              1,
+          )
+          readme.write_text(text, encoding='utf-8')
+
+          changelog = Path('CHANGELOG.md')
+          old = changelog.read_text(encoding='utf-8')
+          marker = '# Azeroth Questing Changelog\n\n'
+          if not old.startswith(marker):
+              raise SystemExit('Unexpected changelog header')
+          entry = '''**VERSION 0.2.30 - September 8, 2026 - Available on GitHub**
+
+* **Improved** GitHub packaging with a stable player-facing `AzerothQuesting.zip` download that contains a top-level `AzerothQuesting/` addon folder, so players do not have to rename the `AzerothQuesting-main` folder created by GitHub's built-in source ZIP.
+
+* **Changed** GitHub Release packaging to provide both `AzerothQuesting.zip` for normal installs and `AzerothQuesting-0.2.30.zip` as the versioned archive.
+
+*This v0.2.30 packaging change has not been tested in World of Warcraft. After installing the packaged ZIP, verify the folder is `Interface/AddOns/AzerothQuesting`, the addon appears as **Azeroth Questing**, `/aq` works, and existing v0.2.29 functionality still loads without Lua errors. GitHub packaging success is a build/distribution check only and must not be treated as an in-game test. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+
+---
+
+'''
+          changelog.write_text(marker + entry + old[len(marker):], encoding='utf-8')
+          PY
+
+          grep -q '^## Version: 0.2.30$' AzerothQuesting.toc
+          grep -q 'STABLE_ZIP_NAME="AzerothQuesting.zip"' .github/workflows/package.yml
+          grep -q 'versioned_zip_name' .github/workflows/package.yml
+          grep -q 'AzerothQuesting.zip' README.md
+          grep -q 'VERSION 0.2.30 - September 8, 2026 - Available on GitHub' CHANGELOG.md
+
+          git diff --check
+          git config user.name "Frostcanvas"
+          git config user.email "131615585+Frostcanvas@users.noreply.github.com"
+          git add AzerothQuesting.toc README.md CHANGELOG.md .github/workflows/package.yml
+          git commit -m "Package AzerothQuesting with stable ZIP name"
+          git push origin HEAD:main
