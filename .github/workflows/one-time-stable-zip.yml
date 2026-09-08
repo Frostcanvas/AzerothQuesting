@@ -17,7 +17,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Update package naming and version
+      - name: Update version and documentation
         shell: bash
         run: |
           set -euo pipefail
@@ -27,56 +27,14 @@ jobs:
 
           toc = Path('AzerothQuesting.toc')
           text = toc.read_text(encoding='utf-8')
-          old = '## Version: 0.2.29'
-          new = '## Version: 0.2.30'
-          if old not in text:
+          old_version = '## Version: 0.2.29'
+          if old_version not in text:
               raise SystemExit('Expected v0.2.29 in AzerothQuesting.toc')
-          toc.write_text(text.replace(old, new, 1), encoding='utf-8')
-
-          workflow = Path('.github/workflows/package.yml')
-          text = workflow.read_text(encoding='utf-8')
-          old_block = '\n'.join([
-              '          ZIP_NAME="AzerothQuesting-${VERSION}.zip"',
-              '          (',
-              '            cd package',
-              '            zip -qr "../${ZIP_NAME}" AzerothQuesting',
-              '          )',
-              '',
-              '          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"',
-              '          echo "zip_name=${ZIP_NAME}" >> "$GITHUB_OUTPUT"',
-              '',
-          ])
-          new_block = '\n'.join([
-              '          STABLE_ZIP_NAME="AzerothQuesting.zip"',
-              '          VERSIONED_ZIP_NAME="AzerothQuesting-${VERSION}.zip"',
-              '          (',
-              '            cd package',
-              '            zip -qr "../${STABLE_ZIP_NAME}" AzerothQuesting',
-              '          )',
-              '          cp "${STABLE_ZIP_NAME}" "${VERSIONED_ZIP_NAME}"',
-              '',
-              '          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"',
-              '          echo "stable_zip_name=${STABLE_ZIP_NAME}" >> "$GITHUB_OUTPUT"',
-              '          echo "versioned_zip_name=${VERSIONED_ZIP_NAME}" >> "$GITHUB_OUTPUT"',
-              '',
-          ])
-          if old_block not in text:
-              raise SystemExit('Expected package build block not found')
-          text = text.replace(old_block, new_block, 1)
-
-          dollar = chr(36)
-          tag_expr = dollar + '{{ github.event.release.tag_name }}'
-          old_output = dollar + '{{ steps.package.outputs.zip_name }}'
-          stable_output = dollar + '{{ steps.package.outputs.stable_zip_name }}'
-          versioned_output = dollar + '{{ steps.package.outputs.versioned_zip_name }}'
-          old_release = '        run: gh release upload "' + tag_expr + '" "' + old_output + '" --clobber\n'
-          new_release = '        run: gh release upload "' + tag_expr + '" "' + stable_output + '" "' + versioned_output + '" --clobber\n'
-          if old_release not in text:
-              raise SystemExit('Expected release upload line not found')
-          workflow.write_text(text.replace(old_release, new_release, 1), encoding='utf-8')
+          toc.write_text(text.replace(old_version, '## Version: 0.2.30', 1), encoding='utf-8')
 
           readme = Path('README.md')
           text = readme.read_text(encoding='utf-8')
+          text = text.replace('**Version:** 0.2.29', '**Version:** 0.2.30', 1)
           text = text.replace(
               'Builds a clean versioned GitHub package named **AzerothQuesting-<version>.zip** through GitHub Actions.',
               'Builds a clean **AzerothQuesting.zip** player package plus a versioned **AzerothQuesting-<version>.zip** archive through GitHub Actions.',
@@ -110,14 +68,12 @@ jobs:
           PY
 
           grep -q '^## Version: 0.2.30$' AzerothQuesting.toc
-          grep -q 'STABLE_ZIP_NAME="AzerothQuesting.zip"' .github/workflows/package.yml
-          grep -q 'versioned_zip_name' .github/workflows/package.yml
-          grep -q 'AzerothQuesting.zip' README.md
           grep -q 'VERSION 0.2.30 - September 8, 2026 - Available on GitHub' CHANGELOG.md
-
+          grep -q 'AzerothQuesting.zip' README.md
           git diff --check
+
           git config user.name "Frostcanvas"
           git config user.email "131615585+Frostcanvas@users.noreply.github.com"
-          git add AzerothQuesting.toc README.md CHANGELOG.md .github/workflows/package.yml
-          git commit -m "Package AzerothQuesting with stable ZIP name"
+          git add AzerothQuesting.toc README.md CHANGELOG.md
+          git commit -m "Release AzerothQuesting v0.2.30 packaging update"
           git push origin HEAD:main
