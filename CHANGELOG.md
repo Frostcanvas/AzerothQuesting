@@ -1,10 +1,6 @@
 # Azeroth Questing Changelog
 
-**VERSION 0.3.0 Beta 1 - September 9, 2026 - Development**
-
-* **Changed** the addon development version from Stable `0.2.32` to canonical prerelease `0.3.0-beta.1`, starting the new **0.3.0 Beta** train. Player-facing tools may display this as **0.3.0 Beta 1**, while GitHub tags, packages, and updater comparisons continue to use the canonical prerelease version.
-
-* **Changed** the planned next addon release line from `0.2.33` to `0.3.0`. This Beta is the active development entry and will continue accumulating release-worthy changes until Beta 1 is published as a GitHub Pre-release.
+**VERSION 0.3.0 Beta 2 - September 9, 2026 - Development**
 
 * **Added** a temporary **P2P Connections** diagnostic panel for the Azeroth Questing Network. `/aq peers`, `/aq p2p`, or `/aq network peers` opens a live session view showing Azeroth Questing characters from which the client has actually received `AZQUEST` traffic, including the peer's addon version when learned from its hello message, last-seen state, and message count.
 
@@ -12,7 +8,18 @@
 
 * **Improved** network privacy and protected-value handling for the temporary peer view. Character names are kept only in the addon's in-memory `sessionPeers` table, are cleared by `/reload` or logout, are never written to `ZoneQuestGuideDB`, are never added to Companion `AQO1` records, and are never uploaded to the Azeroth Questing Server. Peer quest evidence continues through the existing anonymous `source = "peer"` path without sender identity. Inaccessible protected string values are skipped before the diagnostic code performs string operations on incoming addon-message fields.
 
-*This v0.3.0 Beta 1 P2P panel and periodic-presence behavior have not yet been tested in World of Warcraft. Test with two Retail clients that can see the same `AzerothQuesting` custom-channel scope: run `/aq network`, open `/aq peers` on both clients, allow up to 30 seconds or click **Announce / Refresh**, confirm each client appears with a version and updating last-seen value, generate quest evidence and confirm message counts rise, then disconnect one client and verify it becomes Idle after roughly 90 seconds. Reload the receiving UI and confirm the peer-name list is gone, then separately verify peer observations still reach the Companion/server as `source = "peer"` without sender identity. The outstanding v0.2.32 AQO1 synchronization and level-90 campaign-skip reminder checks also still require World of Warcraft testing. No successful in-game test is claimed.*
+* **Changed** the Beta number from `0.3.0-beta.1` to `0.3.0-beta.2` because Beta 1 had already been handed off for testing before the P2P diagnostic panel was added. Beta 2 is therefore the next testable addon build under the Beta test-build numbering rule.
+
+*This v0.3.0 Beta 2 P2P panel and periodic-presence behavior have not yet been tested in World of Warcraft. Test with two Retail clients that can see the same `AzerothQuesting` custom-channel scope: run `/aq network`, open `/aq peers` on both clients, allow up to 30 seconds or click **Announce / Refresh**, confirm each client appears with a version and updating last-seen value, generate quest evidence and confirm message counts rise, then disconnect one client and verify it becomes Idle after roughly 90 seconds. Reload the receiving UI and confirm the peer-name list is gone, then separately verify peer observations still reach the Companion/server as `source = "peer"` without sender identity. The outstanding v0.2.32 AQO1 synchronization and level-90 campaign-skip reminder checks also still require World of Warcraft testing. No successful in-game test is claimed.*
+
+---
+**VERSION 0.3.0 Beta 1 - September 8, 2026 - Development**
+
+* **Changed** the addon development version from Stable `0.2.32` to canonical prerelease `0.3.0-beta.1`, starting the new **0.3.0 Beta** train. Player-facing tools may display this as **0.3.0 Beta 1**, while GitHub tags, packages, and updater comparisons continue to use the canonical prerelease version.
+
+* **Changed** the planned next addon release line from `0.2.33` to `0.3.0`. Beta 1 was handed off for testing before later P2P diagnostic changes were made, so those later changes continue in Beta 2 rather than changing the contents of the Beta 1 test build.
+
+*This initial v0.3.0 Beta 1 build changed version/release metadata only and did not add new gameplay behavior by itself. No new in-game test result is claimed. The outstanding v0.2.32 AQO1 synchronization and level-90 campaign-skip reminder checks still require World of Warcraft testing.*
 
 ---
 **VERSION 0.2.32 - September 8, 2026 - Available on GitHub**
