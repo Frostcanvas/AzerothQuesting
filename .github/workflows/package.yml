@@ -69,6 +69,34 @@ jobs:
           path: package
           if-no-files-found: error
 
+      - name: Publish updater-visible Beta Pre-release
+        if: github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Release addon v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.package.outputs.version }}"
+          TAG="addon-v${VERSION}"
+          IS_PRERELEASE=false
+          if [[ "$VERSION" == *-* ]]; then
+            IS_PRERELEASE=true
+          fi
+
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            if [ "$IS_PRERELEASE" = true ]; then
+              gh release create "$TAG" --target "$GITHUB_SHA" --title "Azeroth Questing v${VERSION}" --generate-notes --prerelease
+            else
+              echo "Stable publication requires explicit approval; refusing automatic Stable release." >&2
+              exit 1
+            fi
+          fi
+
+          gh release upload "$TAG" \
+            "${{ steps.package.outputs.stable_zip_name }}" \
+            "${{ steps.package.outputs.versioned_zip_name }}" \
+            --clobber
+
       - name: Attach packages to GitHub Release
         if: github.event_name == 'release'
         env:
