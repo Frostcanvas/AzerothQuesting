@@ -4,7 +4,10 @@ local PREFIX = "AZQUEST"
 local CHANNEL_NAME = "AzerothQuesting"
 local PROTOCOL_VERSION = 1
 local SEND_INTERVAL = 1.05
+local HELLO_INTERVAL = 30
+local PEER_ACTIVE_WINDOW = 90
 local MAX_PENDING = 100
+local MAX_PEER_ROWS = 12
 
 local EVIDENCE_TO_CODE = {
     available = "V",
@@ -40,9 +43,24 @@ local channelID = 0
 local sentCount = 0
 local receivedCount = 0
 local lastSendResult = nil
+local peerPanel = nil
+local peerRows = {}
 
 local function Print(msg)
     DEFAULT_CHAT_FRAME:AddMessage("|cff66ccffAzeroth Questing:|r " .. tostring(msg))
+end
+
+local function AccessibleString(value)
+    if value == nil then
+        return nil
+    end
+    if canaccessvalue and not canaccessvalue(value) then
+        return nil
+    end
+    if type(value) ~= "string" then
+        return nil
+    end
+    return value
 end
 
 local function AddonVersion()
@@ -258,6 +276,18 @@ local function ProcessPending()
     end
 end
 
+local function ParseHello(text)
+    local kind, protocol, version = text:match("^(H)|([^|]+)|([^|]+)$")
+    if kind ~= "H" or tonumber(protocol) ~= PROTOCOL_VERSION then
+        return nil
+    end
+    version = SafeToken(version, "unknown")
+    if #version > 40 then
+        version = version:sub(1, 40)
+    end
+    return version
+end
+
 local function ParseQuestMessage(text)
     local kind, protocol, questID, mapID, evidenceCode, factionCode, classID, classFile, completed =
         text:match("^(Q)|([^|]+)|([^|]+)|([^|]+)|([^|]+)|([^|]+)|([^|]+)|([^|]+)|([^|]+)$")
@@ -301,31 +331,298 @@ local function ParseQuestMessage(text)
 end
 
 local function SenderIsPlayer(sender)
-    if type(sender) ~= "string" or not UnitName then
+    sender = AccessibleString(sender)
+    if not sender or not UnitName then
         return false
     end
     local ok, playerName = pcall(UnitName, "player")
-    if not ok or type(playerName) ~= "string" then
+    playerName = ok and AccessibleString(playerName) or nil
+    if not playerName then
         return false
     end
     local senderBase = sender:match("^([^-]+)") or sender
     return senderBase == playerName
 end
 
-local function OnAddonMessage(prefix, text, channel, sender)
-    if prefix ~= PREFIX or channel ~= "CHANNEL" or type(text) ~= "string" then
+local function NotePeer(sender, addonVersion)
+    sender = AccessibleString(sender)
+    if not sender or sender == "" then
         return
     end
-    if SenderIsPlayer(sender) then
+
+    local now = GetTime and GetTime() or 0
+    local peer = sessionPeers[sender]
+    if not peer then
+        peer = {
+            name = sender,
+            firstSeen = now,
+            lastSeen = now,
+            messages = 0,
+            addonVersion = "unknown",
+        }
+        sessionPeers[sender] = peer
+    end
+
+    peer.lastSeen = now
+    peer.messages = (peer.messages or 0) + 1
+    if addonVersion and addonVersion ~= "" then
+        peer.addonVersion = addonVersion
+    end
+end
+
+local function SessionPeerCount()
+    local count = 0
+    for _ in pairs(sessionPeers) do
+        count = count + 1
+    end
+    return count
+end
+
+local function ActivePeerCount(now)
+    now = now or (GetTime and GetTime() or 0)
+    local count = 0
+    for _, peer in pairs(sessionPeers) do
+        if peer.lastSeen and now - peer.lastSeen <= PEER_ACTIVE_WINDOW then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+local function SortedPeers(now)
+    now = now or (GetTime and GetTime() or 0)
+    local peers = {}
+    for _, peer in pairs(sessionPeers) do
+        peers[#peers + 1] = peer
+    end
+    table.sort(peers, function(a, b)
+        local aActive = a.lastSeen and now - a.lastSeen <= PEER_ACTIVE_WINDOW
+        local bActive = b.lastSeen and now - b.lastSeen <= PEER_ACTIVE_WINDOW
+        if aActive ~= bActive then
+            return aActive
+        end
+        if a.lastSeen ~= b.lastSeen then
+            return (a.lastSeen or 0) > (b.lastSeen or 0)
+        end
+        return (a.name or "") < (b.name or "")
+    end)
+    return peers
+end
+
+local function FormatAge(seconds)
+    seconds = math.max(0, math.floor(seconds or 0))
+    if seconds < 5 then
+        return "now"
+    elseif seconds < 60 then
+        return tostring(seconds) .. "s ago"
+    elseif seconds < 3600 then
+        return tostring(math.floor(seconds / 60)) .. "m ago"
+    end
+    return tostring(math.floor(seconds / 3600)) .. "h ago"
+end
+
+local function RefreshPeerPanel()
+    if not peerPanel or not peerPanel:IsShown() then
+        return
+    end
+
+    local now = GetTime and GetTime() or 0
+    local peers = SortedPeers(now)
+    local id = RefreshChannelID()
+    local active = ActivePeerCount(now)
+    local total = #peers
+
+    peerPanel.status:SetText(string.format(
+        "AZQUEST: %s   |   Channel: %s   |   Active peers: %d   |   Seen this session: %d",
+        prefixRegistered and "registered" or "not registered",
+        id > 0 and ("joined /" .. tostring(id)) or "not joined",
+        active,
+        total
+    ))
+
+    for index = 1, MAX_PEER_ROWS do
+        local row = peerRows[index]
+        local peer = peers[index]
+        if peer then
+            local age = math.max(0, now - (peer.lastSeen or now))
+            local activeNow = age <= PEER_ACTIVE_WINDOW
+            row.name:SetText(peer.name or "unknown")
+            row.version:SetText(peer.addonVersion or "unknown")
+            row.lastSeen:SetText((activeNow and "|cff33ff66Active|r - " or "|cffffcc33Idle|r - ") .. FormatAge(age))
+            row.messages:SetText(tostring(peer.messages or 0))
+            row.frame:Show()
+        elseif index == 1 and total == 0 then
+            row.name:SetText("|cff888888No Azeroth Questing peers detected yet.|r")
+            row.version:SetText("")
+            row.lastSeen:SetText("")
+            row.messages:SetText("")
+            row.frame:Show()
+        else
+            row.frame:Hide()
+        end
+    end
+
+    local footer = "Session-only diagnostic: character names are kept in memory only and are never saved or uploaded."
+    if total > MAX_PEER_ROWS then
+        footer = footer .. " Showing the " .. tostring(MAX_PEER_ROWS) .. " most recent peers."
+    end
+    peerPanel.footer:SetText(footer)
+end
+
+local function CreatePeerPanel()
+    if peerPanel then
+        return peerPanel
+    end
+
+    local panel = CreateFrame("Frame", "AzerothQuestingPeerPanel", UIParent, "BackdropTemplate")
+    panel:SetSize(620, 410)
+    panel:SetPoint("CENTER")
+    panel:SetFrameStrata("DIALOG")
+    panel:SetClampedToScreen(true)
+    panel:SetMovable(true)
+    panel:EnableMouse(true)
+    panel:RegisterForDrag("LeftButton")
+    panel:SetScript("OnDragStart", function(self)
+        self:StartMoving()
+    end)
+    panel:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+    end)
+    panel:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        tile = true,
+        tileSize = 32,
+        edgeSize = 32,
+        insets = { left = 11, right = 12, top = 12, bottom = 11 },
+    })
+
+    local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 24, -20)
+    title:SetText("Azeroth Questing P2P Connections")
+
+    local subtitle = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
+    subtitle:SetText("Temporary live view of AZQUEST peers detected during this WoW session.")
+
+    panel.status = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    panel.status:SetPoint("TOPLEFT", 24, -69)
+    panel.status:SetPoint("TOPRIGHT", -24, -69)
+    panel.status:SetJustifyH("LEFT")
+
+    local close = CreateFrame("Button", nil, panel, "UIPanelCloseButton")
+    close:SetPoint("TOPRIGHT", -7, -7)
+
+    local headers = {
+        { text = "Player", x = 24, width = 225 },
+        { text = "Addon", x = 255, width = 120 },
+        { text = "Last Seen", x = 382, width = 145 },
+        { text = "Messages", x = 535, width = 65 },
+    }
+    for _, header in ipairs(headers) do
+        local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        label:SetPoint("TOPLEFT", header.x, -96)
+        label:SetWidth(header.width)
+        label:SetJustifyH("LEFT")
+        label:SetText(header.text)
+    end
+
+    for index = 1, MAX_PEER_ROWS do
+        local rowFrame = CreateFrame("Frame", nil, panel)
+        rowFrame:SetSize(572, 20)
+        rowFrame:SetPoint("TOPLEFT", 24, -116 - ((index - 1) * 21))
+
+        local name = rowFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        name:SetPoint("LEFT", 0, 0)
+        name:SetWidth(225)
+        name:SetJustifyH("LEFT")
+
+        local version = rowFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        version:SetPoint("LEFT", 231, 0)
+        version:SetWidth(120)
+        version:SetJustifyH("LEFT")
+
+        local lastSeen = rowFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        lastSeen:SetPoint("LEFT", 358, 0)
+        lastSeen:SetWidth(145)
+        lastSeen:SetJustifyH("LEFT")
+
+        local messages = rowFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        messages:SetPoint("LEFT", 511, 0)
+        messages:SetWidth(61)
+        messages:SetJustifyH("LEFT")
+
+        peerRows[index] = {
+            frame = rowFrame,
+            name = name,
+            version = version,
+            lastSeen = lastSeen,
+            messages = messages,
+        }
+    end
+
+    panel.footer = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    panel.footer:SetPoint("BOTTOMLEFT", 24, 20)
+    panel.footer:SetPoint("BOTTOMRIGHT", -185, 20)
+    panel.footer:SetJustifyH("LEFT")
+    panel.footer:SetJustifyV("BOTTOM")
+
+    local refreshButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    refreshButton:SetSize(145, 24)
+    refreshButton:SetPoint("BOTTOMRIGHT", -24, 18)
+    refreshButton:SetText("Announce / Refresh")
+    refreshButton:SetScript("OnClick", function()
+        RegisterPrefix()
+        JoinNetworkChannel()
+        SendHello()
+        RefreshPeerPanel()
+    end)
+
+    panel:SetScript("OnShow", function(self)
+        self.refreshElapsed = 0
+        RegisterPrefix()
+        JoinNetworkChannel()
+        SendHello()
+        RefreshPeerPanel()
+    end)
+    panel:SetScript("OnUpdate", function(self, elapsed)
+        self.refreshElapsed = (self.refreshElapsed or 0) + elapsed
+        if self.refreshElapsed >= 1 then
+            self.refreshElapsed = 0
+            RefreshPeerPanel()
+        end
+    end)
+
+    peerPanel = panel
+    return panel
+end
+
+local function ShowPeerPanel()
+    local panel = CreatePeerPanel()
+    panel:Show()
+    panel:Raise()
+end
+
+local function OnAddonMessage(prefix, text, channel, sender)
+    prefix = AccessibleString(prefix)
+    text = AccessibleString(text)
+    channel = AccessibleString(channel)
+    sender = AccessibleString(sender)
+
+    if prefix ~= PREFIX or channel ~= "CHANNEL" or not text then
+        return
+    end
+    if sender and SenderIsPlayer(sender) then
         return
     end
 
     receivedCount = receivedCount + 1
-    if type(sender) == "string" then
-        sessionPeers[sender] = true
+    local helloVersion = ParseHello(text)
+    if sender then
+        NotePeer(sender, helloVersion)
     end
 
-    if text:match("^H|1|") then
+    if helloVersion then
         return
     end
 
@@ -334,8 +631,9 @@ local function OnAddonMessage(prefix, text, channel, sender)
         return
     end
 
-    -- The sender name is deliberately not persisted. Only anonymous quest,
-    -- map, faction, class, completion, and evidence context enters the queue.
+    -- The sender name exists only in the temporary in-memory peer panel. It is
+    -- deliberately not persisted. Only anonymous quest/map/faction/class/
+    -- completion/evidence context enters the Companion queue.
     ZQG.QueueCompanionQuestObservation(
         observation.questID,
         observation.evidence,
@@ -351,19 +649,12 @@ local function OnAddonMessage(prefix, text, channel, sender)
     )
 end
 
-local function PeerCount()
-    local count = 0
-    for _ in pairs(sessionPeers) do
-        count = count + 1
-    end
-    return count
-end
-
 local function NetworkStatus()
     local id = RefreshChannelID()
     local restricted = OutgoingRestricted()
+    local now = GetTime and GetTime() or 0
     Print(string.format(
-        "Network: prefix %s %s; channel %s %s%s; queued %d; sent %d; received %d; peers this session %d; outgoing %s.",
+        "Network: prefix %s %s; channel %s %s%s; queued %d; sent %d; received %d; active peers %d; peers this session %d; outgoing %s. Use /aq peers for the temporary P2P panel.",
         PREFIX,
         prefixRegistered and "registered" or "not registered",
         CHANNEL_NAME,
@@ -372,7 +663,8 @@ local function NetworkStatus()
         #pending,
         sentCount,
         receivedCount,
-        PeerCount(),
+        ActivePeerCount(now),
+        SessionPeerCount(),
         restricted and "currently restricted by WoW" or "available"
     ))
 end
@@ -391,7 +683,10 @@ events:SetScript("OnEvent", function(_, event, ...)
             C_Timer.After(1.0, SendHello)
         end)
     elseif event == "PLAYER_ENTERING_WORLD" then
-        C_Timer.After(1.0, JoinNetworkChannel)
+        C_Timer.After(1.0, function()
+            JoinNetworkChannel()
+            C_Timer.After(1.0, SendHello)
+        end)
     elseif event == "CHANNEL_UI_UPDATE" then
         RefreshChannelID()
     elseif event == "CHAT_MSG_ADDON" then
@@ -400,6 +695,16 @@ events:SetScript("OnEvent", function(_, event, ...)
 end)
 
 C_Timer.NewTicker(SEND_INTERVAL, ProcessPending)
+C_Timer.NewTicker(HELLO_INTERVAL, function()
+    if not prefixRegistered then
+        RegisterPrefix()
+    end
+    if RefreshChannelID() <= 0 then
+        JoinNetworkChannel()
+        return
+    end
+    SendHello()
+end)
 
 local originalSlashHandler = SlashCmdList.ZONEQUESTGUIDE
 SlashCmdList.ZONEQUESTGUIDE = function(msg)
@@ -416,6 +721,15 @@ SlashCmdList.ZONEQUESTGUIDE = function(msg)
             NetworkStatus()
         end)
         return
+    elseif command == "peers" or command == "p2p" or command == "network peers" then
+        ShowPeerPanel()
+        return
+    elseif command == "peers refresh" or command == "p2p refresh" then
+        RegisterPrefix()
+        JoinNetworkChannel()
+        SendHello()
+        ShowPeerPanel()
+        return
     end
 
     if originalSlashHandler then
@@ -425,3 +739,4 @@ end
 
 ZQG.BroadcastMapQuestEvidence = BroadcastMapQuestEvidence
 ZQG.GetAzerothNetworkStatus = NetworkStatus
+ZQG.ShowAzerothNetworkPeers = ShowPeerPanel
