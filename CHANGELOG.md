@@ -1,12 +1,18 @@
 # Azeroth Questing Changelog
 
-**VERSION 0.3.0 Beta 1 - September 8, 2026 - Development**
+**VERSION 0.3.0 Beta 1 - September 9, 2026 - Development**
 
 * **Changed** the addon development version from Stable `0.2.32` to canonical prerelease `0.3.0-beta.1`, starting the new **0.3.0 Beta** train. Player-facing tools may display this as **0.3.0 Beta 1**, while GitHub tags, packages, and updater comparisons continue to use the canonical prerelease version.
 
 * **Changed** the planned next addon release line from `0.2.33` to `0.3.0`. This Beta is the active development entry and will continue accumulating release-worthy changes until Beta 1 is published as a GitHub Pre-release.
 
-*This initial v0.3.0 Beta 1 commit changes version/release metadata only and does not add new gameplay behavior by itself. No new in-game test result is claimed. The outstanding v0.2.32 AQO1 synchronization and level-90 campaign-skip reminder checks still require World of Warcraft testing.*
+* **Added** a temporary **P2P Connections** diagnostic panel for the Azeroth Questing Network. `/aq peers`, `/aq p2p`, or `/aq network peers` opens a live session view showing Azeroth Questing characters from which the client has actually received `AZQUEST` traffic, including the peer's addon version when learned from its hello message, last-seen state, and message count.
+
+* **Improved** P2P presence testing with a periodic hello announcement about every 30 seconds. A peer heard from within the last 90 seconds is labeled **Active**; older peers remain visible as **Idle** for the rest of the current UI session so temporary disconnect/reconnect behavior can be observed without pretending WoW exposes a permanent connection roster.
+
+* **Improved** network privacy and protected-value handling for the temporary peer view. Character names are kept only in the addon's in-memory `sessionPeers` table, are cleared by `/reload` or logout, are never written to `ZoneQuestGuideDB`, are never added to Companion `AQO1` records, and are never uploaded to the Azeroth Questing Server. Peer quest evidence continues through the existing anonymous `source = "peer"` path without sender identity. Inaccessible protected string values are skipped before the diagnostic code performs string operations on incoming addon-message fields.
+
+*This v0.3.0 Beta 1 P2P panel and periodic-presence behavior have not yet been tested in World of Warcraft. Test with two Retail clients that can see the same `AzerothQuesting` custom-channel scope: run `/aq network`, open `/aq peers` on both clients, allow up to 30 seconds or click **Announce / Refresh**, confirm each client appears with a version and updating last-seen value, generate quest evidence and confirm message counts rise, then disconnect one client and verify it becomes Idle after roughly 90 seconds. Reload the receiving UI and confirm the peer-name list is gone, then separately verify peer observations still reach the Companion/server as `source = "peer"` without sender identity. The outstanding v0.2.32 AQO1 synchronization and level-90 campaign-skip reminder checks also still require World of Warcraft testing. No successful in-game test is claimed.*
 
 ---
 **VERSION 0.2.32 - September 8, 2026 - Available on GitHub**
@@ -135,7 +141,7 @@
 
 * **Improved** privacy for community map research. Automatic instance telemetry does not include character names, realms, GUIDs, guilds, account identifiers, party/raid member names, chat, coordinates, timestamps, instance names, or scenario names. The more descriptive names remain only in the local/manual export that the player explicitly chooses whether to copy.
 
-*The new v0.2.24 instance learning, `/zq inspect`, combined export, and Wago instance counters have not yet been tested in World of Warcraft. After updating and `/reload`, first verify `/zq inspect` works outdoors, then enter Heroic Battle for Stromgarde and run `/zq inspect` plus `/zq check` immediately after loading and again once the Warfront starts. Confirm `instancevisit` increases only once for the fingerprint, compare Normal Stromgarde if available, verify `ZQGINSTANCEDATA|1` exports cleanly, and separately confirm `instancevisit_m...` plus `instance_visit_total` reach the Wago development dashboard. Existing v0.2.23 map/phase-visit and taxi-suppression checks are still outstanding. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+*The new v0.2.24 instance learning, `/zq inspect`, combined export, and Wago instance counters have not yet been tested in World of Warcraft. After updating, `/zq inspect` works outdoors, then enter Heroic Battle for Stromgarde and run `/zq inspect` plus `/zq check` immediately after loading and again once the Warfront starts. Confirm `instancevisit` increases only once for the fingerprint, compare Normal Stromgarde if available, verify `ZQGINSTANCEDATA|1` exports cleanly, and separately confirm `instancevisit_m...` plus `instance_visit_total` reach the Wago development dashboard. Existing v0.2.23 map/phase-visit and taxi-suppression checks are still outstanding. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
 
 ---
 
@@ -227,7 +233,7 @@
 
 * **Added** automatic anonymous Wago Analytics reporting for strong map/quest observations while players use Zone Quest Guide normally. When WagoAnalytics is available, observations that a quest is **available**, **offered**, **active**, or **turned in** can now increment a map/quest counter containing the live map ID, faction, quest ID, and evidence type even when no Zidormi timeline is known.
 
-* **Improved** Wago privacy and data quality by keeping accepted-only and generic seen observations local. Those weaker observations can remain valid in a quest log while the player moves between maps or timelines, so they are not automatically transmitted as proof that a quest belongs to the current map. Character names, realms, guild names, GUIDs, account identifiers, and quest names are not included in the Wago map/quest metric keys.
+* **Improved** Wago privacy and data quality by keeping accepted-only and generic seen observations local. Those weaker observations can remain valid in a quest log while the player moves between maps or phases, so they are not automatically transmitted as proof that the quest belongs to the current map. Character names, realms, guild names, GUIDs, account identifiers, and quest names are not included in the Wago map/quest metric keys.
 
 * **Improved** flight-path handling for learning and telemetry. Map scans are now skipped while `UnitOnTaxi("player")` reports an active taxi flight, reducing false quest/map associations caused by transient continent or flyover maps while traveling. Strong NPC and turn-in evidence resumes normally after landing.
 
