@@ -1,6 +1,6 @@
 # Azeroth Questing P2P Diagnostics
 
-The `0.3.0-beta.1` development build includes a temporary in-game peer panel for testing the Azeroth Questing Network.
+The `0.3.0-beta.2` development build includes a temporary in-game peer panel for testing the Azeroth Questing Network.
 
 Open it with:
 
@@ -18,7 +18,7 @@ This panel is diagnostic-only. Peer character names exist only in memory for the
 
 Use two Retail clients that can see the same `AzerothQuesting` custom-channel scope:
 
-1. Load `0.3.0-beta.1` on both clients and run `/aq network` to confirm the `AZQUEST` prefix is registered and the custom channel is joined.
+1. Load `0.3.0-beta.2` on both clients and run `/aq network` to confirm the `AZQUEST` prefix is registered and the custom channel is joined.
 2. Open `/aq peers` on both clients. Allow up to 30 seconds for the periodic hello announcement, or click **Announce / Refresh**.
 3. Confirm each client sees the other character, the addon version is populated, and **Last Seen** refreshes as hello/evidence traffic arrives.
 4. Generate quest evidence on one client and confirm the other client's message count increases.
