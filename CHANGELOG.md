@@ -1,6 +1,6 @@
 # Azeroth Questing Changelog
 
-**VERSION 0.3.0 Beta 2 - September 9, 2026 - Development**
+**VERSION 0.3.0 Beta 2 - September 9, 2026 - Available on GitHub Pre-release**
 
 * **Added** a temporary **P2P Connections** diagnostic panel for the Azeroth Questing Network. `/aq peers`, `/aq p2p`, or `/aq network peers` opens a live session view showing Azeroth Questing characters from which the client has actually received `AZQUEST` traffic, including the peer's addon version when learned from its hello message, last-seen state, and message count.
 
