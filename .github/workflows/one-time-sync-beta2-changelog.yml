@@ -1,0 +1,65 @@
+name: One-time sync addon Beta 2 changelog release notes
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.event.head_commit.message == 'Sync current addon Beta 2 changelog release notes'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Sync changelog publication status and GitHub release notes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('CHANGELOG.md')
+          text = path.read_text(encoding='utf-8')
+          old = '**VERSION 0.3.0 Beta 2 - September 9, 2026 - Development**'
+          new = '**VERSION 0.3.0 Beta 2 - September 9, 2026 - Available on GitHub Pre-release**'
+          if old in text:
+              text = text.replace(old, new, 1)
+              path.write_text(text, encoding='utf-8')
+          elif new not in text:
+              raise SystemExit('Could not find the expected Beta 2 changelog header.')
+          PY
+
+          awk -v version="0.3.0 Beta 2" '
+            BEGIN { found = 0 }
+            /^\*\*VERSION / {
+              if (found) exit
+              prefix = "**VERSION " version " -"
+              if (index($0, prefix) == 1) found = 1
+            }
+            found {
+              if ($0 == "---") exit
+              print
+            }
+          ' CHANGELOG.md > release-notes-beta2.md
+
+          if [ ! -s release-notes-beta2.md ]; then
+            echo "Could not extract Beta 2 changelog notes." >&2
+            exit 1
+          fi
+
+          gh release edit addon-v0.3.0-beta.2 --notes-file release-notes-beta2.md
+
+          if ! git diff --quiet -- CHANGELOG.md; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add CHANGELOG.md
+            git commit -m "Mark addon 0.3.0 Beta 2 as published prerelease"
+            git push
+          fi
