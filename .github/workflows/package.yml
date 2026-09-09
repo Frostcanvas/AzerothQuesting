@@ -62,6 +62,41 @@ jobs:
           echo "stable_zip_name=${STABLE_ZIP_NAME}" >> "$GITHUB_OUTPUT"
           echo "versioned_zip_name=${VERSIONED_ZIP_NAME}" >> "$GITHUB_OUTPUT"
 
+      - name: Prepare changelog release notes
+        id: release_notes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.package.outputs.version }}"
+          DISPLAY_VERSION="$VERSION"
+          if [[ "$VERSION" =~ ^(.+)-beta\.([0-9]+)$ ]]; then
+            DISPLAY_VERSION="${BASH_REMATCH[1]} Beta ${BASH_REMATCH[2]}"
+          elif [[ "$VERSION" =~ ^(.+)-rc\.([0-9]+)$ ]]; then
+            DISPLAY_VERSION="${BASH_REMATCH[1]} RC ${BASH_REMATCH[2]}"
+          fi
+
+          NOTES_FILE="release-notes-${VERSION}.md"
+          awk -v version="$DISPLAY_VERSION" '
+            BEGIN { found = 0 }
+            /^\*\*VERSION / {
+              if (found) exit
+              prefix = "**VERSION " version " -"
+              if (index($0, prefix) == 1) found = 1
+            }
+            found {
+              if ($0 == "---") exit
+              print
+            }
+          ' CHANGELOG.md > "$NOTES_FILE"
+
+          if [ ! -s "$NOTES_FILE" ]; then
+            echo "Could not find CHANGELOG.md entry for ${DISPLAY_VERSION}." >&2
+            exit 1
+          fi
+
+          echo "notes_file=${NOTES_FILE}" >> "$GITHUB_OUTPUT"
+
       - name: Upload development package
         uses: actions/upload-artifact@v4
         with:
@@ -78,6 +113,7 @@ jobs:
           set -euo pipefail
           VERSION="${{ steps.package.outputs.version }}"
           TAG="addon-v${VERSION}"
+          NOTES_FILE="${{ steps.release_notes.outputs.notes_file }}"
           IS_PRERELEASE=false
           if [[ "$VERSION" == *-* ]]; then
             IS_PRERELEASE=true
@@ -85,11 +121,13 @@ jobs:
 
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             if [ "$IS_PRERELEASE" = true ]; then
-              gh release create "$TAG" --target "$GITHUB_SHA" --title "Azeroth Questing v${VERSION}" --generate-notes --prerelease
+              gh release create "$TAG" --target "$GITHUB_SHA" --title "Azeroth Questing v${VERSION}" --notes-file "$NOTES_FILE" --prerelease
             else
               echo "Stable publication requires explicit approval; refusing automatic Stable release." >&2
               exit 1
             fi
+          else
+            gh release edit "$TAG" --notes-file "$NOTES_FILE"
           fi
 
           gh release upload "$TAG" \
@@ -97,8 +135,14 @@ jobs:
             "${{ steps.package.outputs.versioned_zip_name }}" \
             --clobber
 
-      - name: Attach packages to GitHub Release
+      - name: Attach packages and changelog to GitHub Release
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" "${{ steps.package.outputs.stable_zip_name }}" "${{ steps.package.outputs.versioned_zip_name }}" --clobber
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.release.tag_name }}"
+          NOTES_FILE="${{ steps.release_notes.outputs.notes_file }}"
+          gh release edit "$TAG" --notes-file "$NOTES_FILE"
+          gh release upload "$TAG" "${{ steps.package.outputs.stable_zip_name }}" "${{ steps.package.outputs.versioned_zip_name }}" --clobber
