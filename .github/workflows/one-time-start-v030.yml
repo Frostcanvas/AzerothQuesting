@@ -1,0 +1,110 @@
+name: One-time restore v0.2.32 changelog and start v0.3.0 beta
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/one-time-start-v030.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]' && github.event.head_commit.message == 'Start Azeroth Questing 0.3.0 beta train'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Restore v0.2.32 history and start v0.3.0 Beta 1
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          toc = Path('AzerothQuesting.toc')
+          toc_text = toc.read_text(encoding='utf-8')
+          old_version = '## Version: 0.2.32'
+          new_version = '## Version: 0.3.0-beta.1'
+          if old_version not in toc_text:
+              raise SystemExit('Expected AzerothQuesting.toc to still be 0.2.32')
+          toc.write_text(toc_text.replace(old_version, new_version, 1), encoding='utf-8')
+
+          changelog = Path('CHANGELOG.md')
+          changelog_text = changelog.read_text(encoding='utf-8')
+          header = '# Azeroth Questing Changelog\n\n'
+          if not changelog_text.startswith(header):
+              raise SystemExit('Unexpected changelog header')
+          if '**VERSION 0.3.0 Beta 1' in changelog_text:
+              raise SystemExit('0.3.0 Beta 1 already exists in changelog')
+          if '**VERSION 0.2.32 - September 8, 2026 - Available on GitHub**' in changelog_text:
+              raise SystemExit('0.2.32 changelog entry already exists; reconcile manually')
+
+          beta_entry = '''**VERSION 0.3.0 Beta 1 - September 8, 2026 - Development**
+
+* **Changed** the addon development version from Stable `0.2.32` to canonical prerelease `0.3.0-beta.1`, starting the new **0.3.0 Beta** train. Player-facing tools may display this as **0.3.0 Beta 1**, while GitHub tags, packages, and updater comparisons continue to use the canonical prerelease version.
+
+* **Changed** the planned next addon release line from `0.2.33` to `0.3.0`. This Beta is the active development entry and will continue accumulating release-worthy changes until Beta 1 is published as a GitHub Pre-release.
+
+*This initial v0.3.0 Beta 1 commit changes version/release metadata only and does not add new gameplay behavior by itself. No new in-game test result is claimed. The outstanding v0.2.32 AQO1 synchronization and level-90 campaign-skip reminder checks still require World of Warcraft testing.*
+
+---
+'''
+
+          stable_entry = '''**VERSION 0.2.32 - September 8, 2026 - Available on GitHub**
+
+* **Added** a Companion-safe `AQO1` wire record to each new queued quest observation. The record contains the addon-generated observation key plus quest/map/evidence context, faction, class, level, completion state, timestamp, source, and addon version so **Azeroth Questing Companion** can extract structured research observations from SavedVariables without executing or generally parsing Lua.
+
+* **Added** a level-90 **Midnight campaign-skip reminder** for eligible alts. The reminder explains that a character whose account has already completed the Midnight leveling campaign can go to **Wayfarer's Rest in Silvermoon** and talk to **Soridormi** to use the remaining-campaign skip. The window includes **Got it** and **Don't show again** controls, with `/aq skipreminder` and `/aq campaignskip` available to manage or reopen it.
+
+* **Improved** the Companion synchronization store to schema version 2 so new structured observations can be handed to the Companion individually while older v0.2.31 queue entries remain readable as historical SavedVariables data.
+
+* **Changed** the Companion/server handoff so individual observations can be deduplicated by their stable observation key instead of treating the entire SavedVariables file as one research record. `CampaignSkip.lua` was also added to the addon load list so the new reminder is part of the v0.2.32 package.
+
+*The v0.2.32 changes were not confirmed through World of Warcraft testing. After updating, `/reload`, interact with quests, run `/aq sync`, and allow WoW to write `AzerothQuesting.lua`; verify new `companionSync.observations` entries contain an `AQO1|...` wire field and that the Companion can extract the records. On an eligible level-90 alt, also verify the campaign-skip reminder appears correctly, **Don't show again** persists, and `/aq skipreminder` or `/aq campaignskip` can re-enable/reopen it. GitHub remains the listed distribution platform; no CurseForge, Wago, or WowUp availability is claimed here.*
+
+---
+'''
+
+          changelog.write_text(
+              header + beta_entry + stable_entry + changelog_text[len(header):],
+              encoding='utf-8',
+          )
+
+          versioning = Path('VERSIONING.md')
+          versioning_text = versioning.read_text(encoding='utf-8')
+          if '0.2.33' not in versioning_text:
+              raise SystemExit('Expected VERSIONING.md to still describe the 0.2.33 train')
+          versioning_text = versioning_text.replace('0.2.33', '0.3.0')
+          versioning_text = versioning_text.replace(
+              'The next addon development train after Stable `0.2.32` is `0.3.0-beta.1` when addon code is next changed.',
+              'The current addon development train after Stable `0.2.32` is `0.3.0-beta.1`.',
+          )
+          versioning.write_text(versioning_text, encoding='utf-8')
+          PY
+
+      - name: Validate release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq '## Version: 0.3.0-beta.1' AzerothQuesting.toc
+          grep -Fq 'VERSION 0.3.0 Beta 1 - September 8, 2026 - Development' CHANGELOG.md
+          grep -Fq 'VERSION 0.2.32 - September 8, 2026 - Available on GitHub' CHANGELOG.md
+          grep -Fq '`0.2.32` < `0.3.0-beta.1` < `0.3.0-beta.2` < `0.3.0`' VERSIONING.md
+          git diff --check
+
+      - name: Commit addon beta metadata and changelog repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Frostcanvas'
+          git config user.email '131615585+Frostcanvas@users.noreply.github.com'
+          git add AzerothQuesting.toc CHANGELOG.md VERSIONING.md
+          git commit -m 'Start Azeroth Questing v0.3.0-beta.1'
+          git push origin HEAD:main
