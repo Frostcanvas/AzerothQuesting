@@ -5,14 +5,13 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/one-time-start-v030.yml'
+      - .github/workflows/one-time-start-v030.yml
 
 permissions:
   contents: write
 
 jobs:
   integrate:
-    if: github.actor != 'github-actions[bot]' && github.event.head_commit.message == 'Start Azeroth Questing 0.3.0 beta train'
     runs-on: ubuntu-latest
 
     steps:
@@ -103,8 +102,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name 'Frostcanvas'
-          git config user.email '131615585+Frostcanvas@users.noreply.github.com'
+          git config user.name Frostcanvas
+          git config user.email 131615585+Frostcanvas@users.noreply.github.com
           git add AzerothQuesting.toc CHANGELOG.md VERSIONING.md
           git commit -m 'Start Azeroth Questing v0.3.0-beta.1'
           git push origin HEAD:main
