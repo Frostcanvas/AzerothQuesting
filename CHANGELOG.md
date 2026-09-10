@@ -1,5 +1,18 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 4 - September 10, 2026 - Available on GitHub Pre-release**
+
+* **Added** a dedicated **current-character completed quest report**. Azeroth Questing now reads `C_QuestLog.GetAllCompletedQuestIDs()` for the currently logged-in character and reports the number of completed quests WoW exposes for that toon without mixing in merely learned, supplemental, active, or peer-observed quests.
+
+* **Added** `/aq completed` to show the current character's completed-quest count and `/aq completed export` to open a copyable tab-separated report for Google Sheets. Each row includes **Character, Realm, Faction, Class, Level, Quest ID, Quest Name, and Addon Version** so exports from multiple toons can be kept distinguishable in a private sheet.
+
+* **Kept** this personal completion report separate from anonymous research collection. Character and realm values used by the report are displayed only in the player's local manual export and are not sent through Azeroth Questing Network, Wago Analytics, Companion research synchronization, or the Azeroth Questing Server by this feature.
+
+* **Changed** the addon version from `0.3.0-beta.3` to `0.3.0-beta.4` because Beta 3 had already been published and handed off for testing before the per-toon completed-quest report was requested.
+
+*This v0.3.0 Beta 4 report has not yet been tested in World of Warcraft. After updating, log into a character, run `/aq completed`, then `/aq completed export`; confirm the count is plausible, the export contains only quests WoW reports completed for that current character, character/realm/class metadata is correct, and the selected tab-separated rows paste into Google Sheets without column drift. If some quest titles initially appear as `Quest <ID>`, leave the client running while the existing throttled catalog title loader fills more names and export again. No successful in-game or Google-Sheets paste test is claimed yet.*
+
+---
 **VERSION 0.3.0 Beta 3 - September 10, 2026 - Available on GitHub Pre-release**
 
 * **Added** an account-wide **Quest Catalog** collector that merges every quest ID the live WoW client can actually expose for the current account/character with Azeroth Questing's existing learned and supplemental data. The catalog scans `C_QuestLog.GetAllCompletedQuestIDs()` for completed quest history, current quest-log entries for active quests, `mapQuestLearning` for quests learned from maps/NPCs/turn-ins, and `StaticQuests` for curated supplemental records.
