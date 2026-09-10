@@ -1,0 +1,224 @@
+name: Prepare addon Beta 5 Companion completed quest handoff
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/prepare-completed-quest-client-beta5.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Add per-character Companion handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          report_path = Path('CompletedQuestReport.lua')
+          text = report_path.read_text(encoding='utf-8')
+
+          if 'local function CaptureCompletedQuestClientSnapshot()' not in text:
+              anchor = 'local exportFrame = CreateFrame("Frame", "AzerothQuestingCompletedQuestExportFrame", UIParent, "BackdropTemplate")\n'
+              block = r'''local function CurrentUnixTime()
+    if GetServerTime then
+        local ok, value = pcall(GetServerTime)
+        if ok then
+            value = SafeNumber(value)
+            if value and value > 0 then
+                return math.floor(value)
+            end
+        end
+    end
+
+    if time then
+        local ok, value = pcall(time)
+        if ok then
+            value = SafeNumber(value)
+            if value and value > 0 then
+                return math.floor(value)
+            end
+        end
+    end
+
+    return 0
+end
+
+local function HexEncode(value)
+    value = SafeString(value)
+    if not value then
+        return ""
+    end
+
+    local encoded = {}
+    for index = 1, #value do
+        encoded[#encoded + 1] = string.format("%02X", string.byte(value, index))
+    end
+    return table.concat(encoded)
+end
+
+local function ClientCharacterMetadata()
+    local faction = "Unknown"
+    local classFile = "UNKNOWN"
+    local level = 0
+
+    if UnitFactionGroup then
+        local ok, value = pcall(UnitFactionGroup, "player")
+        if ok then
+            value = SafeString(value)
+            if value == "Alliance" or value == "Horde" or value == "Neutral" then
+                faction = value
+            end
+        end
+    end
+
+    if UnitClass then
+        local ok, _, value = pcall(UnitClass, "player")
+        if ok then
+            value = SafeString(value)
+            if value and value:match("^[A-Z]+$") then
+                classFile = value
+            end
+        end
+    end
+
+    if UnitLevel then
+        local ok, value = pcall(UnitLevel, "player")
+        if ok then
+            level = SafeNumber(value) or level
+        end
+    end
+
+    return faction, classFile, level
+end
+
+local function BuildCompletedQuestClientWire()
+    RefreshCatalogForTitles()
+
+    local ids = GetCompletedQuestIDs()
+    local faction, classFile, level = ClientCharacterMetadata()
+    local capturedAt = CurrentUnixTime()
+    local entries = {}
+
+    for _, questID in ipairs(ids) do
+        entries[#entries + 1] = tostring(questID) .. "~" .. HexEncode(QuestTitle(questID))
+    end
+
+    local wire = table.concat({
+        "AQC1",
+        "1",
+        faction,
+        classFile,
+        tostring(math.floor(level or 0)),
+        tostring(capturedAt),
+        AddonVersion(),
+        table.concat(entries, ","),
+    }, "|")
+
+    return wire, #ids, capturedAt
+end
+
+local function CaptureCompletedQuestClientSnapshot()
+    local wire, count, capturedAt = BuildCompletedQuestClientWire()
+
+    AzerothQuestingCharacterDB = AzerothQuestingCharacterDB or {}
+    AzerothQuestingCharacterDB.completedQuestHandoff = {
+        schema = 1,
+        capturedAt = capturedAt,
+        questCount = count,
+        wire = wire,
+    }
+
+    return count
+end
+
+local snapshotScheduled = false
+local function ScheduleCompletedQuestClientSnapshot(delay)
+    if snapshotScheduled or not C_Timer or not C_Timer.After then
+        return
+    end
+
+    snapshotScheduled = true
+    C_Timer.After(delay or 0.5, function()
+        snapshotScheduled = false
+        CaptureCompletedQuestClientSnapshot()
+    end)
+end
+
+local clientSnapshotEvents = CreateFrame("Frame")
+clientSnapshotEvents:RegisterEvent("PLAYER_LOGIN")
+clientSnapshotEvents:RegisterEvent("QUEST_TURNED_IN")
+clientSnapshotEvents:RegisterEvent("PLAYER_LEVEL_UP")
+clientSnapshotEvents:RegisterEvent("PLAYER_LOGOUT")
+clientSnapshotEvents:SetScript("OnEvent", function(_, event)
+    if event == "PLAYER_LOGOUT" then
+        CaptureCompletedQuestClientSnapshot()
+    elseif event == "PLAYER_LOGIN" then
+        ScheduleCompletedQuestClientSnapshot(3)
+    else
+        ScheduleCompletedQuestClientSnapshot(0.75)
+    end
+end)
+
+'''
+              if anchor not in text:
+                  raise SystemExit('CompletedQuestReport export frame anchor not found')
+              text = text.replace(anchor, block + anchor, 1)
+
+          old = '''    elseif command == "completed export" or command == "completed quests export"\n        or command == "toon completed export" then\n        ShowCompletedExport()\n        return\n    end\n'''
+          new = '''    elseif command == "completed export" or command == "completed quests export"\n        or command == "toon completed export" then\n        ShowCompletedExport()\n        return\n    elseif command == "completed client" or command == "completed companion"\n        or command == "toon completed client" then\n        local count = CaptureCompletedQuestClientSnapshot()\n        Print(string.format(\n            "Prepared %d completed quests for Azeroth Questing Companion. Use /reload or log out so WoW writes the per-character data file for the Companion to read.",\n            count\n        ))\n        return\n    end\n'''
+          if 'command == "completed client"' not in text:
+              if old not in text:
+                  raise SystemExit('CompletedQuestReport slash-command anchor not found')
+              text = text.replace(old, new, 1)
+
+          expose = 'ZQG.BuildCurrentCharacterCompletedQuestExport = BuildCompletedQuestExport\n'
+          if 'ZQG.CaptureCurrentCharacterCompletedQuestClientSnapshot' not in text:
+              if expose not in text:
+                  raise SystemExit('CompletedQuestReport export exposure anchor not found')
+              text = text.replace(
+                  expose,
+                  expose + 'ZQG.CaptureCurrentCharacterCompletedQuestClientSnapshot = CaptureCompletedQuestClientSnapshot\n',
+                  1)
+
+          report_path.write_text(text, encoding='utf-8')
+
+          toc_path = Path('AzerothQuesting.toc')
+          toc = toc_path.read_text(encoding='utf-8')
+          toc = toc.replace('## Version: 0.3.0-beta.4', '## Version: 0.3.0-beta.5', 1)
+          per_character = '## SavedVariablesPerCharacter: AzerothQuestingCharacterDB\n'
+          if per_character not in toc:
+              toc = toc.replace('## SavedVariables: ZoneQuestGuideDB\n', '## SavedVariables: ZoneQuestGuideDB\n' + per_character, 1)
+          toc_path.write_text(toc, encoding='utf-8')
+
+          changelog_path = Path('CHANGELOG.md')
+          changelog = changelog_path.read_text(encoding='utf-8')
+          heading = '# Azeroth Questing Changelog\n\n'
+          entry = '''**VERSION 0.3.0 Beta 5 - September 10, 2026 - Available on GitHub Pre-release**\n\n* **Added** a private **Addon-to-Companion completed-quest handoff** for the currently logged-in toon. Azeroth Questing now stores a compact `AQC1` snapshot in a per-character SavedVariables table, separate from the existing account-wide research data.\n\n* **Added** automatic per-character completion snapshots shortly after login, after a quest turn-in, after a level change, and during logout. `/aq completed client` (also `/aq completed companion`) can force a fresh snapshot before `/reload` or logout. Because WoW addons cannot directly write arbitrary files while the game is running, WoW writes the handoff file during its normal SavedVariables save on `/reload` or logout, after which the Companion can read it.\n\n* **Improved** completed-quest handoff metadata with faction, class, level, capture time, addon version, quest ID, and the quest title when WoW has it cached. Quest titles are byte-encoded inside the local wire record so punctuation and localized UTF-8 text cannot break the record format.\n\n* **Kept** character identity private to the local PC. The `AQC1` payload does not contain character name or realm; Azeroth Questing Companion derives those values from WoW's local per-character SavedVariables folder. The completed-quest handoff is not sent over Azeroth Questing Network or Wago Analytics and is not placed in the anonymous research synchronization queue.\n\n* **Changed** the addon version from `0.3.0-beta.4` to `0.3.0-beta.5` because Beta 4 had already been published/consumed before the Companion handoff was requested. The new handoff requires Azeroth Questing Companion `0.1.9-beta.6` or newer to import it.\n\n*This v0.3.0 Beta 5 handoff has not yet been tested inside World of Warcraft. After both compatible Betas are installed, keep the Companion running, log into a toon, run `/aq completed client`, then `/reload` or log out. Verify the Companion reports the toon and completed-quest count, its local completed-quest TSV contains the expected rows, and merely importing the completed-quest snapshot does not increase Pending Observations or upload character identity to Azeroth Questing Server. No successful in-game, Windows runtime, or live handoff test is claimed yet.*\n\n---\n'''
+          if '**VERSION 0.3.0 Beta 5 -' not in changelog:
+              if not changelog.startswith(heading):
+                  raise SystemExit('Unexpected addon changelog heading')
+              changelog = heading + entry + changelog[len(heading):]
+          changelog_path.write_text(changelog, encoding='utf-8')
+          PY
+
+      - name: Commit addon Beta 5
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add CompletedQuestReport.lua AzerothQuesting.toc CHANGELOG.md
+          git commit -m 'Release addon v0.3.0-beta.5 Companion completed quest handoff'
+          git push origin HEAD:main
