@@ -1,5 +1,20 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 3 - September 10, 2026 - Available on GitHub Pre-release**
+
+* **Added** an account-wide **Quest Catalog** collector that merges every quest ID the live WoW client can actually expose for the current account/character with Azeroth Questing's existing learned and supplemental data. The catalog scans `C_QuestLog.GetAllCompletedQuestIDs()` for completed quest history, current quest-log entries for active quests, `mapQuestLearning` for quests learned from maps/NPCs/turn-ins, and `StaticQuests` for curated supplemental records.
+
+* **Added** background quest-title enrichment for catalog records whose names are not already cached. Azeroth Questing requests missing quest data gradually instead of firing every request at once, keeps resolved names in the account-wide SavedVariables catalog, and can continue filling names across later scans/sessions.
+
+* **Added** `/aq catalog`, `/aq catalog scan`, and `/aq catalog export` (plus `quests` aliases). The export is tab-separated for direct paste into Google Sheets and includes **Quest ID, Quest Name, Completed, Active, Sources, Map IDs, Factions, First Seen, Last Seen, and Addon Version**.
+
+* **Changed** the addon version from `0.3.0-beta.2` to `0.3.0-beta.3` because Beta 2 had already been published/consumed before the quest-catalog feature was requested.
+
+* **Clarified** the catalog's completeness boundary. WoW does not provide an addon API that enumerates every quest shipped in the game, so this is a broad **game-exposed catalog**, not a fabricated master list. A never-completed, currently unavailable quest that has never been observed by Azeroth Questing will not appear unless it is later exposed by WoW, learned in play, received as anonymous quest evidence, or added to supplemental data.
+
+*The new v0.3.0 Beta 3 quest-catalog behavior has not yet been tested inside World of Warcraft. The pre-release preparation workflow successfully passed Lua source validation and package construction before intentionally stopping at release-note preparation while this changelog entry was still missing. After updating in WoW, run `/aq catalog scan`, confirm the unique/completed/active counts are plausible, allow missing titles time to resolve, run `/aq catalog export`, and paste the selected tab-separated text into Google Sheets cell A1. Verify the exported columns stay aligned, a known completed quest is marked Completed, an active quest is marked Active, no Lua/secret-value errors occur, and the catalog persists after `/reload`. No successful in-game catalog or Google-Sheets paste test is claimed yet.*
+
+---
 **VERSION 0.3.0 Beta 2 - September 9, 2026 - Available on GitHub Pre-release**
 
 * **Added** a temporary **P2P Connections** diagnostic panel for the Azeroth Questing Network. `/aq peers`, `/aq p2p`, or `/aq network peers` opens a live session view showing Azeroth Questing characters from which the client has actually received `AZQUEST` traffic, including the peer's addon version when learned from its hello message, last-seen state, and message count.
@@ -58,7 +73,7 @@
 
 * **Changed** GitHub Release packaging to provide both `AzerothQuesting.zip` for normal installs and `AzerothQuesting-0.2.30.zip` as the versioned archive.
 
-*This v0.2.30 packaging change has not been tested in World of Warcraft. After installing the packaged ZIP, verify the folder is `Interface/AddOns/AzerothQuesting`, the addon appears as **Azeroth Questing**, `/aq` works, and existing v0.2.29 functionality still loads without Lua errors. GitHub packaging success is a build/distribution check only and must not be treated as an in-game test. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+*This v0.2.30 packaging change has not been tested in World of Warcraft. After installing the packaged ZIP, verify the folder is `Interface/AddOns/AzerothQuesting`, the addon appears as **Azeroth Questing**, `/aq` works, and existing v0.2.29 functionality still loads without Lua errors. GitHub packaging success is a build check only and must not be treated as an in-game test. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
 
 ---
 **VERSION 0.2.29 - September 8, 2026 - Available on GitHub**
@@ -170,7 +185,7 @@
 
 * **Added** supplemental quest availability rules for cases where WoW progression makes an older quest impossible to obtain. Database records can now use `blockedBy = { ... }` to hide a quest after any listed blocker quest has been completed.
 
-* **Added** `exclusiveWith = { ... }` for mutually exclusive quest routes. A supplemental quest using this rule is hidden while any listed alternate quest is active and remains hidden once that alternate quest has been completed. If an alternate route is abandoned before completion and the game allows the original route again, the supplemental quest can become eligible on a later refresh.
+* **Added** `exclusiveWith = { ... }` for mutually exclusive quest routes. A supplemental quest using this rule is hidden while any listed alternate quest is active and remains hidden once that alternate quest has been completed. If an alternate route is abandoned before completion and the game allows the original route again, the supplemental quest can become eligible again on a later refresh.
 
 * **Improved** the existing `prereqs = { ... }` framework by documenting the three availability rules together: every prerequisite must be completed, any completed `blockedBy` quest suppresses the record, and any active/completed `exclusiveWith` quest suppresses the record. These restrictions apply to supplemental database records only; live Blizzard-provided quests remain trusted as currently obtainable or active.
 
