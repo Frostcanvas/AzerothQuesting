@@ -2,17 +2,15 @@ name: Prepare addon Beta 4
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
-      - '.github/workflows/prepare-addon-beta4.yml'
+      - .github/workflows/prepare-addon-beta4.yml
 
 permissions:
   contents: write
 
 jobs:
   prepare:
-    if: github.event.head_commit.message == 'Add one-time addon Beta 4 preparation workflow'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -24,48 +22,46 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
 
-          changelog_path = Path('CHANGELOG.md')
-          changelog = changelog_path.read_text(encoding='utf-8')
-          heading = '# Azeroth Questing Changelog\n\n'
-          if not changelog.startswith(heading):
-              raise SystemExit('Unexpected CHANGELOG.md heading')
+          cat > /tmp/beta4-entry.md <<'EOF'
+          **VERSION 0.3.0 Beta 4 - September 10, 2026 - Available on GitHub Pre-release**
 
-          entry = '''**VERSION 0.3.0 Beta 4 - September 10, 2026 - Available on GitHub Pre-release**
+          * **Added** a dedicated **current-character completed quest report**. Azeroth Questing now reads `C_QuestLog.GetAllCompletedQuestIDs()` for the currently logged-in character and reports the number of completed quests WoW exposes for that toon without mixing in merely learned, supplemental, active, or peer-observed quests.
 
-* **Added** a dedicated **current-character completed quest report**. Azeroth Questing now reads `C_QuestLog.GetAllCompletedQuestIDs()` for the currently logged-in character and reports the number of completed quests WoW exposes for that toon without mixing in merely learned, supplemental, active, or peer-observed quests.
+          * **Added** `/aq completed` to show the current character's completed-quest count and `/aq completed export` to open a copyable tab-separated report for Google Sheets. Each row includes **Character, Realm, Faction, Class, Level, Quest ID, Quest Name, and Addon Version** so exports from multiple toons can be kept distinguishable in a private sheet.
 
-* **Added** `/aq completed` to show the current character's completed-quest count and `/aq completed export` to open a copyable tab-separated report for Google Sheets. Each row includes **Character, Realm, Faction, Class, Level, Quest ID, Quest Name, and Addon Version** so exports from multiple toons can be kept distinguishable in a private sheet.
+          * **Kept** this personal completion report separate from anonymous research collection. Character and realm values used by the report are displayed only in the player's local manual export and are not sent through Azeroth Questing Network, Wago Analytics, Companion research synchronization, or the Azeroth Questing Server by this feature.
 
-* **Kept** this personal completion report separate from anonymous research collection. Character and realm values used by the report are displayed only in the player's local manual export and are not sent through Azeroth Questing Network, Wago Analytics, Companion research synchronization, or the Azeroth Questing Server by this feature.
+          * **Changed** the addon version from `0.3.0-beta.3` to `0.3.0-beta.4` because Beta 3 had already been published and handed off for testing before the per-toon completed-quest report was requested.
 
-* **Changed** the addon version from `0.3.0-beta.3` to `0.3.0-beta.4` because Beta 3 had already been published and handed off for testing before the per-toon completed-quest report was requested.
+          *This v0.3.0 Beta 4 report has not yet been tested in World of Warcraft. After updating, log into a character, run `/aq completed`, then `/aq completed export`; confirm the count is plausible, the export contains only quests WoW reports completed for that current character, character/realm/class metadata is correct, and the selected tab-separated rows paste into Google Sheets without column drift. If some quest titles initially appear as `Quest <ID>`, leave the client running while the existing throttled catalog title loader fills more names and export again. No successful in-game or Google-Sheets paste test is claimed yet.*
 
-*This v0.3.0 Beta 4 report has not yet been tested in World of Warcraft. After updating, log into a character, run `/aq completed`, then `/aq completed export`; confirm the count is plausible, the export contains only quests WoW reports completed for that current character, character/realm/class metadata is correct, and the selected tab-separated rows paste into Google Sheets without column drift. If some quest titles initially appear as `Quest <ID>`, leave the client running while the existing throttled catalog title loader fills more names and export again. No successful in-game or Google-Sheets paste test is claimed yet.*
+          ---
+          EOF
 
----
-'''
+          if ! grep -q '^\*\*VERSION 0.3.0 Beta 4 -' CHANGELOG.md; then
+            {
+              head -n 1 CHANGELOG.md
+              printf '\n'
+              cat /tmp/beta4-entry.md
+              tail -n +3 CHANGELOG.md
+            } > CHANGELOG.md.new
+            mv CHANGELOG.md.new CHANGELOG.md
+          fi
 
-          if '**VERSION 0.3.0 Beta 4 -' not in changelog:
-              changelog_path.write_text(heading + entry + changelog[len(heading):], encoding='utf-8')
-
-          toc_path = Path('AzerothQuesting.toc')
-          toc = toc_path.read_text(encoding='utf-8')
-          toc = toc.replace('## Version: 0.3.0-beta.3', '## Version: 0.3.0-beta.4', 1)
-          if 'CompletedQuestReport.lua' not in toc:
-              toc = toc.replace('QuestCatalog.lua\n', 'QuestCatalog.lua\nCompletedQuestReport.lua\n', 1)
-          toc_path.write_text(toc, encoding='utf-8')
-          PY
+          sed -i 's/^## Version: 0\.3\.0-beta\.3$/## Version: 0.3.0-beta.4/' AzerothQuesting.toc
+          if ! grep -q '^CompletedQuestReport.lua$' AzerothQuesting.toc; then
+            sed -i '/^QuestCatalog\.lua$/a CompletedQuestReport.lua' AzerothQuesting.toc
+          fi
 
       - name: Commit Beta 4 release metadata
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add CHANGELOG.md AzerothQuesting.toc
+          git diff --cached --check
           if git diff --cached --quiet; then
             echo 'No Beta 4 metadata changes were needed.'
             exit 0
