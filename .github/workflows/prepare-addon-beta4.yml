@@ -1,3 +1,4 @@
+# One-time helper used to prepare the Beta 4 release metadata.
 name: Prepare addon Beta 4
 
 on:
