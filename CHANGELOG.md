@@ -1,5 +1,20 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 5 - September 10, 2026 - Available on GitHub Pre-release**
+
+* **Added** a private **Addon-to-Companion completed-quest handoff** for the currently logged-in toon. Azeroth Questing now stores a compact `AQC1` snapshot in a per-character SavedVariables table, separate from the existing account-wide research data.
+
+* **Added** automatic per-character completion snapshots shortly after login, after a quest turn-in, after a level change, and during logout. `/aq completed client` (also `/aq completed companion`) can force a fresh snapshot before `/reload` or logout. Because WoW addons cannot directly write arbitrary files while the game is running, WoW writes the handoff file during its normal SavedVariables save on `/reload` or logout, after which the Companion can read it.
+
+* **Improved** completed-quest handoff metadata with faction, class, level, capture time, addon version, quest ID, and the quest title when WoW has it cached. Quest titles are byte-encoded inside the local wire record so punctuation and localized UTF-8 text cannot break the record format.
+
+* **Kept** character identity private to the local PC. The `AQC1` payload does not contain character name or realm; Azeroth Questing Companion derives those values from WoW's local per-character SavedVariables folder. The completed-quest handoff is not sent over Azeroth Questing Network or Wago Analytics and is not placed in the anonymous research synchronization queue.
+
+* **Changed** the addon version from `0.3.0-beta.4` to `0.3.0-beta.5` because Beta 4 had already been published/consumed before the Companion handoff was requested. The new handoff requires Azeroth Questing Companion `0.1.9-beta.6` or newer to import it.
+
+*This v0.3.0 Beta 5 handoff has not yet been tested inside World of Warcraft. After both compatible Betas are installed, keep the Companion running, log into a toon, run `/aq completed client`, then `/reload` or log out. Verify the Companion reports the toon and completed-quest count, its local completed-quest TSV contains the expected rows, and merely importing the completed-quest snapshot does not increase Pending Observations or upload character identity to Azeroth Questing Server. No successful in-game, Windows runtime, or live handoff test is claimed yet.*
+
+---
 **VERSION 0.3.0 Beta 4 - September 10, 2026 - Available on GitHub Pre-release**
 
 * **Added** a dedicated **current-character completed quest report**. Azeroth Questing now reads `C_QuestLog.GetAllCompletedQuestIDs()` for the currently logged-in character and reports the number of completed quests WoW exposes for that toon without mixing in merely learned, supplemental, active, or peer-observed quests.
