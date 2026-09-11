@@ -1,0 +1,118 @@
+name: Release addon Beta 6 helper
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event.head_commit.message == 'Run one-time addon Beta 6 release helper'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Apply connected players Settings change
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/aq_beta6_connected_players_patch.py
+          grep -Fq '## Version: 0.3.0-beta.6' AzerothQuesting.toc
+          grep -Fq 'Settings.lua' AzerothQuesting.toc
+          grep -Fq '**VERSION 0.3.0 Beta 6 - September 11, 2026 - Available on GitHub Pre-release**' CHANGELOG.md
+
+      - name: Validate Lua sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+          find . -type f -name '*.lua' -not -path './.git/*' -print0 | xargs -0 -n1 luac -p
+          git diff --check
+
+      - name: Commit and push Beta 6
+        id: release_commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Settings.lua AzerothQuesting.toc CHANGELOG.md
+          git commit -m "Release addon v0.3.0-beta.6: show connected players in settings"
+          RELEASE_SHA="$(git rev-parse HEAD)"
+          git push origin HEAD:main
+          echo "sha=${RELEASE_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build addon package
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(awk '/^## Version:/ { print $3; exit }' AzerothQuesting.toc)"
+          test "$VERSION" = "0.3.0-beta.6"
+
+          rm -rf package
+          mkdir -p package/AzerothQuesting
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='package' \
+            ./ package/AzerothQuesting/
+
+          (
+            cd package
+            zip -qr ../AzerothQuesting.zip AzerothQuesting
+          )
+          cp AzerothQuesting.zip "AzerothQuesting-${VERSION}.zip"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare changelog release notes
+        id: release_notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          NOTES_FILE="release-notes-0.3.0-beta.6.md"
+          awk '
+            BEGIN { found = 0 }
+            /^\*\*VERSION 0\.3\.0 Beta 6 -/ { found = 1 }
+            found {
+              if ($0 == "---") exit
+              print
+            }
+          ' CHANGELOG.md > "$NOTES_FILE"
+          test -s "$NOTES_FILE"
+          echo "notes_file=${NOTES_FILE}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload development package
+        uses: actions/upload-artifact@v4
+        with:
+          name: AzerothQuesting
+          path: package
+          if-no-files-found: error
+
+      - name: Publish updater-visible Beta Pre-release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ steps.release_commit.outputs.sha }}
+          NOTES_FILE: ${{ steps.release_notes.outputs.notes_file }}
+        run: |
+          set -euo pipefail
+          TAG="addon-v0.3.0-beta.6"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; refusing to overwrite a consumed Beta." >&2
+            exit 1
+          fi
+          gh release create "$TAG" \
+            --target "$RELEASE_SHA" \
+            --title "Azeroth Questing v0.3.0-beta.6" \
+            --notes-file "$NOTES_FILE" \
+            --prerelease
+          gh release upload "$TAG" \
+            AzerothQuesting.zip \
+            AzerothQuesting-0.3.0-beta.6.zip
