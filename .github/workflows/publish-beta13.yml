@@ -1,0 +1,82 @@
+name: Publish addon Beta 13
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-beta13.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate Beta 13 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+          find . -type f -name '*.lua' -not -path './.git/*' -print0 | xargs -0 -n1 luac -p
+          git diff --check
+          grep -F '## Version: 0.3.0-beta.13' AzerothQuesting.toc
+          grep -F 'VERSION 0.3.0 Beta 13' CHANGELOG.md
+
+      - name: Build addon packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(awk '/^## Version:/ { print $3; exit }' AzerothQuesting.toc)"
+          test "$VERSION" = '0.3.0-beta.13'
+          rm -rf package AzerothQuesting.zip "AzerothQuesting-${VERSION}.zip"
+          mkdir -p package/AzerothQuesting
+          rsync -a --exclude='.git' --exclude='.github' --exclude='package' ./ package/AzerothQuesting/
+          (cd package && zip -qr ../AzerothQuesting.zip AzerothQuesting)
+          cp AzerothQuesting.zip "AzerothQuesting-${VERSION}.zip"
+
+      - name: Prepare release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          awk '
+            BEGIN { found = 0 }
+            /^\*\*VERSION 0\.3\.0 Beta 13 -/ { found = 1 }
+            found {
+              if ($0 == "---") exit
+              print
+            }
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md
+
+      - name: Publish GitHub Pre-release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG='addon-v0.3.0-beta.13'
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file release-notes.md --prerelease
+          else
+            gh release create "$TAG" --target eb42128d15199445cc904df4b597b746080d49ab --title 'Azeroth Questing v0.3.0-beta.13' --notes-file release-notes.md --prerelease
+          fi
+          gh release upload "$TAG" AzerothQuesting.zip AzerothQuesting-0.3.0-beta.13.zip --clobber
+
+      - name: Remove temporary publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/publish-beta13.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/publish-beta13.yml
+          git commit -m 'Remove Beta 13 publisher'
+          git push origin HEAD:main
