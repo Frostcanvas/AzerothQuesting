@@ -20,6 +20,20 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
+      # BEGIN AQ_BETA6_CONNECTED_PLAYERS_PATCH
+      - name: Apply staged Beta 6 connected players patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/aq_beta6_connected_players_patch.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Release addon v0.3.0-beta.6: show connected players in settings"
+          git push origin HEAD:main
+      # END AQ_BETA6_CONNECTED_PLAYERS_PATCH
+
       - name: Validate Lua sources
         shell: bash
         run: |
