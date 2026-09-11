@@ -6,7 +6,7 @@ local PROTOCOL_VERSION = 1
 local SEND_INTERVAL = 1.05
 local HELLO_INTERVAL = 30
 local PEER_ACTIVE_WINDOW = 90
-local MAX_PENDING = 100
+local MAX_PENDING = 300
 local MAX_PEER_ROWS = 12
 local INBOUND_DEDUP_WINDOW = 10
 
@@ -377,6 +377,12 @@ local function ProcessPending()
     end
     if OutgoingRestricted() then
         return
+    end
+    if not prefixRegistered then
+        RegisterPrefix()
+        if not prefixRegistered then
+            return
+        end
     end
 
     local item = pending[1]
