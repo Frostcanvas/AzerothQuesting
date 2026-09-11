@@ -1,5 +1,23 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 14 - September 11, 2026 - Available on GitHub Pre-release**
+
+* **Added** an optional Zygor-style **Guide Mode** that presents one quest step at a time instead of requiring the player to work from the full zone list. The compact guide shows the current quest, its live status, up to four objective lines when WoW exposes them, and a simple instruction to pick up, complete, or turn in the quest.
+
+* **Added** automatic step progression. Guide Mode stays on the same quest as it moves from **AVAILABLE** to **IN PROGRESS** to **TURN IN**, then advances to the next unfinished quest after the completed quest leaves the active list. Completed quests are skipped by the existing completion/prerequisite filtering.
+
+* **Added** **Back**, **Next**, **Quest List**, and **Show Zone Quests / Show Daily / Weekly** controls so players can move through the guide manually, reopen the full quest list, or switch the Beta 13 frequency view without leaving Guide Mode. Manual quest-row selection also synchronizes the compact guide target.
+
+* **Improved** navigation integration by routing Guide Mode targets through the existing Azeroth Questing waypoint/navigation HUD pipeline. Accepted quests use WoW quest super-tracking; known unaccepted quest coordinates continue to use the addon's waypoint arrow behavior.
+
+* **Added** `/aq guide`, `/aq guide on`, `/aq guide off`, `/aq guide next`, and `/aq guide back` controls. Guide Mode is enabled by default for new/upgraded Beta 14 settings and remembers its screen position and whether the player closes it.
+
+* **Kept** the Azeroth Questing Network protocol, research payloads, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only guide-view change.
+
+*Beta 14 still requires in-game validation. Verify Guide Mode opens without Lua errors, follows an available quest through accept/objectives/turn-in, automatically advances after turn-in, Back/Next and the Zone vs Daily/Weekly switch work, the Quest List button remains usable, and the existing navigation HUD points to the selected guide step. No successful Beta 14 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 13 - September 11, 2026 - Available on GitHub Pre-release**
 
 * **Added** two switchable quest views to the main Azeroth Questing panel: **Zone Quests** for normal frequency-1 quests and **Daily / Weekly** for repeatable frequency-2 and frequency-3 quests. The selected tab is remembered locally for the player.
