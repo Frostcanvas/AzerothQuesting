@@ -1,4 +1,5 @@
 ## Interface: 120100
+# Live Retail interface. Do not replace this with PTR/test interface metadata.
 ## Title: Azeroth Questing
 ## Notes: Shows unfinished quests for your current zone and points you toward the selected quest.
 ## Author: OpenAI + Player
