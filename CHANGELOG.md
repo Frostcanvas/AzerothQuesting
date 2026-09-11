@@ -10,7 +10,7 @@
 
 * **Kept** the `AZQUEST` protocol, privacy model, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon compatibility correction.
 
-*Beta 11 has not yet been tested inside World of Warcraft. After updating, use `/reload` or relog and verify Azeroth Questing appears again in the addon list and under **Settings > AddOns**, reports `0.3.0-beta.11`, and then repeat the same-realm PARTY peer test. No successful Beta 11 in-game test is claimed yet.*
+* **Verified in World of Warcraft** that Beta 11 loads again on live Retail and that the **GUILD** transport works bidirectionally across both faction and realm boundaries. After both clients were fully logged out and logged back in to clear the session-only peer list, the Alliance client started at **Connected now: 0 players**; when `Moralni-Bonechewer` came online in the same guild while the characters were not grouped, it updated to **1 player** and showed Moralni on `0.3.0-beta.11`. The reverse Horde-side test also started at **0 players** and then updated to **1 player**, showing `Frostlendian-BleedingHollow` after that Alliance character came online. This confirms fresh, bidirectional **cross-faction + cross-realm GUILD peer discovery** rather than a leftover PARTY/session-cache result. Remaining transport validation still includes cross-faction PARTY, RAID, INSTANCE_CHAT, and any final custom-channel/deduplication checks before Stable approval.*
 
 ---
 
