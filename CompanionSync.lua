@@ -103,16 +103,70 @@ local function WireToken(value)
     return value
 end
 
+local function SafeString(value)
+    if value == nil then
+        return nil
+    end
+    if canaccessvalue and not canaccessvalue(value) then
+        return nil
+    end
+    if type(value) ~= "string" or value == "" then
+        return nil
+    end
+    return value
+end
+
+local function QuestTitle(questID, context)
+    local title = SafeString(context and context.questName)
+    if title then
+        return title
+    end
+
+    if ZQG.GetQuestCatalogStore then
+        local store = ZQG.GetQuestCatalogStore()
+        local record = store and store.records and store.records[questID]
+        title = record and SafeString(record.name) or nil
+        if title then
+            return title
+        end
+    end
+
+    if C_QuestLog and C_QuestLog.GetTitleForQuestID then
+        local ok, value = pcall(C_QuestLog.GetTitleForQuestID, questID)
+        if ok then
+            title = SafeString(value)
+            if title then
+                return title
+            end
+        end
+    end
+
+    return nil
+end
+
+local function HexEncode(value)
+    value = SafeString(value)
+    if not value then
+        return ""
+    end
+
+    local encoded = {}
+    for index = 1, #value do
+        encoded[index] = string.format("%02X", string.byte(value, index))
+    end
+    return table.concat(encoded)
+end
+
 local function GetStore()
     ZoneQuestGuideDB = ZoneQuestGuideDB or {}
     ZoneQuestGuideDB.companionSync = ZoneQuestGuideDB.companionSync or {
-        version = 2,
+        version = 3,
         nextSequence = 1,
         observations = {},
     }
 
     local store = ZoneQuestGuideDB.companionSync
-    store.version = 2
+    store.version = 3
     store.nextSequence = tonumber(store.nextSequence) or 1
     store.observations = store.observations or {}
     return store
@@ -174,6 +228,7 @@ local function QueueQuestObservation(questID, evidence, mapID, context)
     end
 
     local addonVersion = AddonVersion()
+    local questName = QuestTitle(questID, context)
     local key = string.format("%d-%d", observedAt, sequence)
     local observation = {
         key = key,
@@ -181,6 +236,7 @@ local function QueueQuestObservation(questID, evidence, mapID, context)
         type = "quest",
         source = source,
         questID = questID,
+        questName = questName,
         mapID = mapID,
         evidence = evidence,
         faction = faction,
@@ -192,9 +248,9 @@ local function QueueQuestObservation(questID, evidence, mapID, context)
         addonVersion = addonVersion,
     }
 
-    -- Companion-friendly wire record. The Companion can safely extract this
-    -- fixed delimiter format from SavedVariables without executing or generally
-    -- parsing Lua. AQO1 fields contain only addon-generated tokens.
+    -- Keep the original AQO1 record so older Companions can still upload the
+    -- observation. When a title is known, AQO2 adds the same observation key plus
+    -- a hex-encoded UTF-8 quest title; updated Companions prefer AQO2 for that key.
     observation.wire = table.concat({
         "AQO1",
         WireToken(key),
@@ -210,6 +266,25 @@ local function QueueQuestObservation(questID, evidence, mapID, context)
         tostring(observedAt),
         WireToken(addonVersion),
     }, "|")
+
+    if questName then
+        observation.wire2 = table.concat({
+            "AQO2",
+            WireToken(key),
+            WireToken(source),
+            tostring(questID),
+            tostring(mapID),
+            WireToken(evidence),
+            WireToken(faction),
+            tostring(classID),
+            WireToken(classFile),
+            tostring(level),
+            completed and "1" or "0",
+            tostring(observedAt),
+            WireToken(addonVersion),
+            HexEncode(questName),
+        }, "|")
+    end
 
     store.observations[#store.observations + 1] = observation
     PruneQueue(store)

@@ -1,5 +1,18 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 7 - September 11, 2026 - Available on GitHub Pre-release**
+
+* **Added** quest-title enrichment to normal Companion research observations. When Azeroth Questing knows a quest name from the live quest API or its account-wide Quest Catalog, it now records that title beside the quest ID so the Website Quest Repository can show the readable quest name instead of only `Quest <ID>`.
+
+* **Added** backward-compatible `AQO2` research records for named quests. The existing `AQO1` record is preserved for older Companions, while `AQO2` carries the same anonymous observation key plus a hex-encoded UTF-8 quest title that cannot break the SavedVariables delimiter format.
+
+* **Improved** research synchronization schema metadata from version 2 to version 3 without adding character name, realm, account identity, or peer sender identity. Quest titles are public game data and remain attached only to the anonymous quest observation.
+
+* **Changed** the addon version from `0.3.0-beta.6` to `0.3.0-beta.7` because Beta 6 had already been published/consumed before research quest-title transport was requested.
+
+*This v0.3.0 Beta 7 quest-title transport has not yet been tested inside World of Warcraft. Azeroth Questing Companion `0.1.9-beta.8` or newer is required to prefer and upload `AQO2` titles, and Azeroth Questing Server API `0.2.6` or newer is required to accept/store them. The Website Quest Repository already supports displaying and searching `quest_name`, so no Website build is required for this change. Verify a known named quest produces both AQO1 and AQO2 records after WoW saves SavedVariables, that older AQO1 observations still synchronize, and that no character/realm identity is added. No successful in-game, Windows runtime, live server, or production website test is claimed yet.*
+
+---
 **VERSION 0.3.0 Beta 6 - September 11, 2026 - Available on GitHub Pre-release**
 
 * **Added** an **Azeroth Questing** page under WoW's **Settings > AddOns** with a **Connected Players** section. It shows Azeroth Questing peers this client has heard from within the existing 90-second active window, including player name, addon version when learned from the `AZQUEST` hello, and last-seen age.
