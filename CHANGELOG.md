@@ -12,6 +12,8 @@
 
 * **Verified in World of Warcraft** that Beta 11 loads again on live Retail and that the **GUILD** transport works bidirectionally across both faction and realm boundaries. After both clients were fully logged out and logged back in to clear the session-only peer list, the Alliance client started at **Connected now: 0 players**; when `Moralni-Bonechewer` came online in the same guild while the characters were not grouped, it updated to **1 player** and showed Moralni on `0.3.0-beta.11`. The reverse Horde-side test also started at **0 players** and then updated to **1 player**, showing `Frostlendian-BleedingHollow` after that Alliance character came online. This confirms fresh, bidirectional **cross-faction + cross-realm GUILD peer discovery** rather than a leftover PARTY/session-cache result. Remaining transport validation still includes cross-faction PARTY, RAID, INSTANCE_CHAT, and any final custom-channel/deduplication checks before Stable approval.*
 
+* **Verified in World of Warcraft** that the **PARTY** transport also works across both faction and realm boundaries in the tested Alliance-to-Horde direction. With the Alliance client grouped with `Moralni-Bonechewer` on a different realm and running `0.3.0-beta.11`, **Connected Players** showed **1 player** with a fresh Last Seen value. This confirms live cross-faction + cross-realm PARTY peer discovery from the Alliance client. The reverse Horde-to-Alliance direction has not yet been separately evidenced, so bidirectional cross-faction PARTY is not claimed yet.
+
 ---
 
 **VERSION 0.3.0 Beta 10 - September 11, 2026 - Available on GitHub Pre-release**
