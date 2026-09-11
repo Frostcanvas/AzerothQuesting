@@ -1,5 +1,19 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 8 - September 11, 2026 - Available on GitHub Pre-release**
+
+* **Fixed** the Azeroth Questing entry failing to appear under **WoW Settings > AddOns** during the first in-game Settings test. The Connected Players page introduced in Beta 6 and still present in Beta 7 was not registered in the visible AddOns category in the reported live client session.
+
+* **Improved** Settings registration to follow Blizzard's current addon Settings initialization pattern with `EventUtil.ContinueOnAddOnLoaded`, while also retrying at `PLAYER_LOGIN`, when Blizzard Settings components load, and briefly on a timer if the Settings API is not ready yet. One early unavailable-API check can no longer permanently skip the category for the rest of the UI session.
+
+* **Kept** the Connected Players behavior and privacy model unchanged: active peers are still based on live `AZQUEST` traffic within the 90-second window, names remain session-only, and peer names are not saved to SavedVariables or uploaded to the Azeroth Questing Server.
+
+* **Changed** the addon version from `0.3.0-beta.7` to `0.3.0-beta.8` because Beta 7 had already been published/consumed before the missing Settings category was reported.
+
+*The screenshot from the live WoW client confirms the Beta 7-era Settings registration did not produce an **Azeroth Questing** entry in the AddOns list. Beta 8 has not yet been tested in World of Warcraft. After updating, verify **Settings > AddOns > Azeroth Questing** is visible, opens without Lua errors, the Connected Players section appears, and live peer presence still follows the existing 90-second behavior. No successful Beta 8 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 7 - September 11, 2026 - Available on GitHub Pre-release**
 
 * **Added** quest-title enrichment to normal Companion research observations. When Azeroth Questing knows a quest name from the live quest API or its account-wide Quest Catalog, it now records that title beside the quest ID so the Website Quest Repository can show the readable quest name instead of only `Quest <ID>`.
