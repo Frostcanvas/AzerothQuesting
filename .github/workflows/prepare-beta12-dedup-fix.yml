@@ -1,0 +1,85 @@
+name: Prepare Beta 12 deduplication fix
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/prepare-beta12-dedup-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Apply Beta 12 deduplication fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          network_path = Path('AzerothNetwork.lua')
+          text = network_path.read_text()
+
+          text = text.replace('local INBOUND_DEDUP_WINDOW = 10', 'local INBOUND_DEDUP_WINDOW = 20', 1)
+
+          anchor = '''local function AddonVersion()\n'''
+          helper = '''local function NormalizeRealmToken(realm)\n    if type(realm) ~= "string" or realm == "" then\n        return nil\n    end\n    realm = realm:gsub("[%s%-']", ""):lower()\n    if realm == "" then\n        return nil\n    end\n    return realm\nend\n\nlocal function LocalRealmToken()\n    if GetNormalizedRealmName then\n        local ok, realm = pcall(GetNormalizedRealmName)\n        if ok then\n            realm = NormalizeRealmToken(realm)\n            if realm then\n                return realm\n            end\n        end\n    end\n    if GetRealmName then\n        local ok, realm = pcall(GetRealmName)\n        if ok then\n            return NormalizeRealmToken(realm)\n        end\n    end\n    return nil\nend\n\nlocal function SenderIdentityKey(sender)\n    sender = AccessibleString(sender)\n    if not sender or sender == "" then\n        return nil\n    end\n\n    sender = sender:match("^%s*(.-)%s*$")\n    local name, realm = sender:match("^([^-]+)%-(.+)$")\n    if not name then\n        name = sender\n        realm = LocalRealmToken()\n    else\n        realm = NormalizeRealmToken(realm)\n    end\n\n    name = name:lower()\n    if realm then\n        return name .. "@" .. realm\n    end\n    return name\nend\n\n'''
+          if 'local function SenderIdentityKey(sender)' not in text:
+              if anchor not in text:
+                  raise SystemExit('Could not find AddonVersion anchor')
+              text = text.replace(anchor, helper + anchor, 1)
+
+          old = '''    local key = sender .. "\\031" .. text\n    local seenAt = recentInbound[key]\n'''
+          new = '''    local senderKey = SenderIdentityKey(sender)\n    if not senderKey then\n        return false\n    end\n\n    local key = senderKey .. "\\031" .. text\n    local seenAt = recentInbound[key]\n'''
+          if old not in text:
+              raise SystemExit('Could not find inbound dedup key')
+          text = text.replace(old, new, 1)
+          network_path.write_text(text)
+
+          toc_path = Path('AzerothQuesting.toc')
+          toc = toc_path.read_text()
+          if '## Version: 0.3.0-beta.11' not in toc:
+              raise SystemExit('Unexpected addon version in TOC')
+          toc_path.write_text(toc.replace('## Version: 0.3.0-beta.11', '## Version: 0.3.0-beta.12', 1))
+
+          changelog_path = Path('CHANGELOG.md')
+          changelog = changelog_path.read_text()
+          heading = '# Azeroth Questing Changelog\n\n'
+          if not changelog.startswith(heading):
+              raise SystemExit('Unexpected changelog header')
+          entry = '''**VERSION 0.3.0 Beta 12 - September 11, 2026 - Available on GitHub Pre-release**\n\n* **Fixed** overlapping Azeroth Questing Network copies not being deduplicated reliably across multiple WoW transports. During the Beta 11 in-game overlap test, one peer's **Messages** count increased from **9 to 12** after the same logical AZQUEST hello was sent through **PARTY**, **GUILD**, and the custom **CHANNEL**, showing that all three copies were processed instead of one.\n\n* **Improved** inbound duplicate matching by canonicalizing the sender identity before building the deduplication key. Short same-realm names and full `Name-Realm` forms now resolve to a consistent lowercase `name@realm` identity, with realm spaces, hyphens, and apostrophes normalized so transport-specific sender formatting cannot split one peer into separate deduplication keys.\n\n* **Increased** the inbound overlap window from **10 seconds to 20 seconds** so delayed copies from separate WoW transports can still collapse into one logical message. This remains below the addon's normal 30-second hello cadence, so the next scheduled hello can still refresh peer activity normally.\n\n* **Kept** the AZQUEST wire payload, privacy model, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only fix.\n\n*Beta 12 still requires in-game validation. Repeat the controlled overlap test with one sender reachable through PARTY or RAID plus GUILD and CHANNEL: the raw watcher should show multiple transport copies of the same payload while the receiving peer's Messages count increases by exactly one. No successful Beta 12 in-game deduplication test is claimed yet.*\n\n---\n\n'''
+          changelog_path.write_text(heading + entry + changelog[len(heading):])
+          PY
+
+      - name: Validate patched addon
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+          find . -type f -name '*.lua' -not -path './.git/*' -print0 | xargs -0 -n1 luac -p
+          git diff --check
+          grep -F '## Version: 0.3.0-beta.12' AzerothQuesting.toc
+          grep -F 'VERSION 0.3.0 Beta 12' CHANGELOG.md
+          grep -F 'local INBOUND_DEDUP_WINDOW = 20' AzerothNetwork.lua
+          grep -F 'local function SenderIdentityKey(sender)' AzerothNetwork.lua
+
+      - name: Commit release and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/prepare-beta12-dedup-fix.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add AzerothNetwork.lua AzerothQuesting.toc CHANGELOG.md .github/workflows/prepare-beta12-dedup-fix.yml
+          git commit -m 'Release addon v0.3.0-beta.12'
+          git push origin HEAD:main
