@@ -1,5 +1,18 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 6 - September 11, 2026 - Available on GitHub Pre-release**
+
+* **Added** an **Azeroth Questing** page under WoW's **Settings > AddOns** with a **Connected Players** section. It shows Azeroth Questing peers this client has heard from within the existing 90-second active window, including player name, addon version when learned from the `AZQUEST` hello, and last-seen age.
+
+* **Improved** connection visibility by refreshing the Settings list automatically while it is open and showing only currently active peers there. The existing `/aq peers` panel remains available for the fuller session diagnostic, including peers that have gone Idle and message counts.
+
+* **Kept** connection-name privacy session-only. The Settings list mirrors live `AZQUEST` traffic in memory and does not write peer names to SavedVariables or send them to Azeroth Questing Companion, Wago Analytics, or the Azeroth Questing Server.
+
+* **Changed** the addon version from `0.3.0-beta.5` to `0.3.0-beta.6` because Beta 5 had already been published/consumed before the Settings connection list was requested.
+
+*This v0.3.0 Beta 6 Settings connection list has not yet been tested inside World of Warcraft. Verify **Settings > AddOns > Azeroth Questing** opens without Lua errors, two clients on the same reachable Azeroth Questing channel appear under Connected Players with sensible version/last-seen values, a disconnected client disappears after roughly 90 seconds, `/aq peers` still shows the full session diagnostic, and `/reload` clears the session-only name list. No successful in-game test is claimed yet.*
+
+---
 **VERSION 0.3.0 Beta 5 - September 10, 2026 - Available on GitHub Pre-release**
 
 * **Added** a private **Addon-to-Companion completed-quest handoff** for the currently logged-in toon. Azeroth Questing now stores a compact `AQC1` snapshot in a per-character SavedVariables table, separate from the existing account-wide research data.
