@@ -1,5 +1,21 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 13 - September 11, 2026 - Available on GitHub Pre-release**
+
+* **Added** two switchable quest views to the main Azeroth Questing panel: **Zone Quests** for normal frequency-1 quests and **Daily / Weekly** for repeatable frequency-2 and frequency-3 quests. The selected tab is remembered locally for the player.
+
+* **Added** explicit weekly-quest classification alongside the existing daily handling. Azeroth Questing now normalizes quest-frequency information from gossip, quest-log, map, and quest-line APIs into one internal model: **1 normal**, **2 daily**, **3 weekly**.
+
+* **Improved** repeatable quest readability by labeling rows with **[Daily]** or **[Weekly]** in the Daily / Weekly tab while keeping campaign/local-story badges intact.
+
+* **Changed** filtering, quest counts, and auto-point behavior to follow the currently selected tab so switching to Daily / Weekly navigates within repeatable quests instead of continuing to point at a hidden normal zone quest.
+
+* **Kept** the Azeroth Questing Network protocol, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only UI/classification change.
+
+*Beta 13 still requires in-game validation. Verify the Zone Quests tab shows normal quests, the Daily / Weekly tab shows known blue daily/weekly quests with the correct badge, switching tabs updates the count and auto-point target, and no Lua errors occur. No successful Beta 13 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 12 - September 11, 2026 - Available on GitHub Pre-release**
 
 * **Fixed** overlapping Azeroth Questing Network copies not being deduplicated reliably across multiple WoW transports. During the Beta 11 in-game overlap test, one peer's **Messages** count increased from **9 to 12** after the same logical AZQUEST hello was sent through **PARTY**, **GUILD**, and the custom **CHANNEL**, showing that all three copies were processed instead of one.
