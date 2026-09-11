@@ -8,6 +8,15 @@ local HELLO_INTERVAL = 30
 local PEER_ACTIVE_WINDOW = 90
 local MAX_PENDING = 100
 local MAX_PEER_ROWS = 12
+local INBOUND_DEDUP_WINDOW = 10
+
+local VALID_NETWORK_CHANNELS = {
+    CHANNEL = true,
+    PARTY = true,
+    RAID = true,
+    INSTANCE_CHAT = true,
+    GUILD = true,
+}
 
 local EVIDENCE_TO_CODE = {
     available = "V",
@@ -45,6 +54,8 @@ local receivedCount = 0
 local lastSendResult = nil
 local peerPanel = nil
 local peerRows = {}
+local recentInbound = {}
+local lastInboundPrune = 0
 
 local function Print(msg)
     DEFAULT_CHAT_FRAME:AddMessage("|cff66ccffAzeroth Questing:|r " .. tostring(msg))
@@ -187,31 +198,132 @@ local function JoinNetworkChannel()
     return true
 end
 
-local function QueueMessage(key, message)
-    if pendingKeys[key] then
+local function InInstanceGroup()
+    if not IsInGroup or not LE_PARTY_CATEGORY_INSTANCE then
+        return false
+    end
+    local ok, grouped = pcall(IsInGroup, LE_PARTY_CATEGORY_INSTANCE)
+    return ok and grouped and true or false
+end
+
+local function InRaid()
+    if not IsInRaid then
+        return false
+    end
+    local ok, grouped = pcall(IsInRaid)
+    return ok and grouped and true or false
+end
+
+local function InGroup()
+    if not IsInGroup then
+        return false
+    end
+    local ok, grouped = pcall(IsInGroup)
+    return ok and grouped and true or false
+end
+
+local function InGuild()
+    if not IsInGuild then
+        return false
+    end
+    local ok, guilded = pcall(IsInGuild)
+    return ok and guilded and true or false
+end
+
+local function CurrentGroupTransport()
+    if InInstanceGroup() then
+        return "INSTANCE_CHAT"
+    elseif InRaid() then
+        return "RAID"
+    elseif InGroup() then
+        return "PARTY"
+    end
+    return nil
+end
+
+local function QueueTransport(key, message, chatType)
+    local transportKey = key .. "@" .. chatType
+    if pendingKeys[transportKey] then
         return false
     end
     if #pending >= MAX_PENDING then
         return false
     end
-    pending[#pending + 1] = { key = key, message = message }
-    pendingKeys[key] = true
+    pending[#pending + 1] = {
+        key = transportKey,
+        message = message,
+        chatType = chatType,
+        channelWaits = 0,
+    }
+    pendingKeys[transportKey] = true
     return true
 end
 
-local function SendRaw(message)
+local function QueueMessage(key, message)
+    local queued = false
+    local groupTransport = CurrentGroupTransport()
+
+    -- Cross-faction-capable shared contexts are queued first so a
+    -- throttled custom channel cannot delay party/raid/instance peers.
+    if groupTransport then
+        queued = QueueTransport(key, message, groupTransport) or queued
+    end
+    if InGuild() then
+        queued = QueueTransport(key, message, "GUILD") or queued
+    end
+
+    -- Preserve the existing broad same-faction custom-channel path.
+    queued = QueueTransport(key, message, "CHANNEL") or queued
+    return queued
+end
+
+local function TransportAvailable(chatType)
+    if chatType == "CHANNEL" then
+        return RefreshChannelID() > 0
+    elseif chatType == "INSTANCE_CHAT" then
+        return InInstanceGroup()
+    elseif chatType == "RAID" then
+        return InRaid()
+    elseif chatType == "PARTY" then
+        return InGroup() and not InRaid() and not InInstanceGroup()
+    elseif chatType == "GUILD" then
+        return InGuild()
+    end
+    return false
+end
+
+local function SendRaw(message, chatType)
     if not prefixRegistered or OutgoingRestricted() then
         return false
     end
-    local id = RefreshChannelID()
-    if id <= 0 or not C_ChatInfo or not C_ChatInfo.SendAddonMessage then
+    if not C_ChatInfo or not C_ChatInfo.SendAddonMessage then
         return false
     end
 
-    local ok, result = pcall(C_ChatInfo.SendAddonMessage, PREFIX, message, "CHANNEL", id)
-    if not ok then
+    local target = nil
+    if chatType == "CHANNEL" then
+        target = RefreshChannelID()
+        if target <= 0 then
+            JoinNetworkChannel()
+            lastSendResult = 7
+            return false
+        end
+    elseif not TransportAvailable(chatType) then
+        lastSendResult = chatType == "GUILD" and 10 or 5
         return false
     end
+
+    local ok, result
+    if target then
+        ok, result = pcall(C_ChatInfo.SendAddonMessage, PREFIX, message, chatType, target)
+    else
+        ok, result = pcall(C_ChatInfo.SendAddonMessage, PREFIX, message, chatType)
+    end
+    if not ok then
+        lastSendResult = 9
+        return false
+    end
+
     lastSendResult = result
     if result == 0 then
         sentCount = sentCount + 1
@@ -252,6 +364,13 @@ local function BroadcastMapQuestEvidence(questID, evidence, mapID)
     return QueueMessage(key, message)
 end
 
+local function DropPendingFront()
+    local item = table.remove(pending, 1)
+    if item then
+        pendingKeys[item.key] = nil
+    end
+end
+
 local function ProcessPending()
     if #pending == 0 then
         return
@@ -259,20 +378,29 @@ local function ProcessPending()
     if OutgoingRestricted() then
         return
     end
-    if RefreshChannelID() <= 0 then
+
+    local item = pending[1]
+    if item.chatType == "CHANNEL" and RefreshChannelID() <= 0 then
+        item.channelWaits = (item.channelWaits or 0) + 1
         JoinNetworkChannel()
+        if item.channelWaits >= 5 then
+            DropPendingFront()
+        end
         return
     end
 
-    local item = pending[1]
-    if SendRaw(item.message) then
-        table.remove(pending, 1)
-        pendingKeys[item.key] = nil
+    if not TransportAvailable(item.chatType) then
+        DropPendingFront()
+        return
+    end
+
+    if SendRaw(item.message, item.chatType) then
+        DropPendingFront()
     elseif lastSendResult ~= 3 and lastSendResult ~= 8 and lastSendResult ~= 11 then
-        -- Keep throttle/lockdown failures queued for retry. Other permanent
-        -- errors are dropped so one bad message cannot block the network queue.
-        table.remove(pending, 1)
-        pendingKeys[item.key] = nil
+        -- Keep throttle/lockdown failures queued for retry. Membership,
+        -- invalid-target, and other permanent failures are dropped so
+        -- one stale transport cannot block later research traffic.
+        DropPendingFront()
     end
 end
 
@@ -421,6 +549,26 @@ local function FormatAge(seconds)
     return tostring(math.floor(seconds / 3600)) .. "h ago"
 end
 
+local function ActiveTransportSummary()
+    local transports = {}
+    local groupTransport = CurrentGroupTransport()
+    local id = RefreshChannelID()
+
+    if groupTransport then
+        transports[#transports + 1] = groupTransport
+    end
+    if InGuild() then
+        transports[#transports + 1] = "GUILD"
+    end
+    if id > 0 then
+        transports[#transports + 1] = "CHANNEL /" .. tostring(id)
+    else
+        transports[#transports + 1] = "CHANNEL pending"
+    end
+
+    return table.concat(transports, ", ")
+end
+
 local function RefreshPeerPanel()
     if not peerPanel or not peerPanel:IsShown() then
         return
@@ -428,14 +576,13 @@ local function RefreshPeerPanel()
 
     local now = GetTime and GetTime() or 0
     local peers = SortedPeers(now)
-    local id = RefreshChannelID()
     local active = ActivePeerCount(now)
     local total = #peers
 
     peerPanel.status:SetText(string.format(
-        "AZQUEST: %s   |   Channel: %s   |   Active peers: %d   |   Seen this session: %d",
+        "AZQUEST: %s   |   Transports: %s   |   Active peers: %d   |   Seen this session: %d",
         prefixRegistered and "registered" or "not registered",
-        id > 0 and ("joined /" .. tostring(id)) or "not joined",
+        ActiveTransportSummary(),
         active,
         total
     ))
@@ -503,7 +650,7 @@ local function CreatePeerPanel()
 
     local subtitle = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
-    subtitle:SetText("Temporary live view of AZQUEST peers detected during this WoW session.")
+    subtitle:SetText("Live AZQUEST peers heard through the custom channel or shared party, raid, instance, and guild transports.")
 
     panel.status = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     panel.status:SetPoint("TOPLEFT", 24, -69)
@@ -603,16 +750,40 @@ local function ShowPeerPanel()
     panel:Raise()
 end
 
+local function IsDuplicateInbound(sender, text)
+    if not sender then
+        return false
+    end
+
+    local now = GetTime and GetTime() or 0
+    if now - lastInboundPrune >= 30 then
+        for key, seenAt in pairs(recentInbound) do
+            if now - seenAt > INBOUND_DEDUP_WINDOW then
+                recentInbound[key] = nil
+            end
+        end
+        lastInboundPrune = now
+    end
+
+    local key = sender .. "\031" .. text
+    local seenAt = recentInbound[key]
+    recentInbound[key] = now
+    return seenAt ~= nil and now - seenAt <= INBOUND_DEDUP_WINDOW
+end
+
 local function OnAddonMessage(prefix, text, channel, sender)
     prefix = AccessibleString(prefix)
     text = AccessibleString(text)
     channel = AccessibleString(channel)
     sender = AccessibleString(sender)
 
-    if prefix ~= PREFIX or channel ~= "CHANNEL" or not text then
+    if prefix ~= PREFIX or not VALID_NETWORK_CHANNELS[channel] or not text then
         return
     end
     if sender and SenderIsPlayer(sender) then
+        return
+    end
+    if sender and IsDuplicateInbound(sender, text) then
         return
     end
 
@@ -650,16 +821,13 @@ local function OnAddonMessage(prefix, text, channel, sender)
 end
 
 local function NetworkStatus()
-    local id = RefreshChannelID()
     local restricted = OutgoingRestricted()
     local now = GetTime and GetTime() or 0
     Print(string.format(
-        "Network: prefix %s %s; channel %s %s%s; queued %d; sent %d; received %d; active peers %d; peers this session %d; outgoing %s. Use /aq peers for the temporary P2P panel.",
+        "Network: prefix %s %s; transports %s; queued transmissions %d; sent transmissions %d; received logical messages %d; active peers %d; peers this session %d; outgoing %s. Use /aq peers for the temporary P2P panel.",
         PREFIX,
         prefixRegistered and "registered" or "not registered",
-        CHANNEL_NAME,
-        id > 0 and ("joined as /" .. tostring(id)) or "not joined",
-        id > 0 and " (protocol traffic stays out of normal chat)" or "",
+        ActiveTransportSummary(),
         #pending,
         sentCount,
         receivedCount,
@@ -673,6 +841,7 @@ local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_LOGIN")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:RegisterEvent("CHANNEL_UI_UPDATE")
+events:RegisterEvent("GROUP_ROSTER_UPDATE")
 events:RegisterEvent("CHAT_MSG_ADDON")
 
 events:SetScript("OnEvent", function(_, event, ...)
@@ -689,6 +858,8 @@ events:SetScript("OnEvent", function(_, event, ...)
         end)
     elseif event == "CHANNEL_UI_UPDATE" then
         RefreshChannelID()
+    elseif event == "GROUP_ROSTER_UPDATE" then
+        C_Timer.After(0.5, SendHello)
     elseif event == "CHAT_MSG_ADDON" then
         OnAddonMessage(...)
     end
@@ -701,7 +872,6 @@ C_Timer.NewTicker(HELLO_INTERVAL, function()
     end
     if RefreshChannelID() <= 0 then
         JoinNetworkChannel()
-        return
     end
     SendHello()
 end)

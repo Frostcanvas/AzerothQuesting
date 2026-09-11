@@ -1,5 +1,23 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 9 - September 11, 2026 - Available on GitHub Pre-release**
+
+* **Added** multi-transport Azeroth Questing Network delivery. In addition to the existing `AzerothQuesting` custom channel, the addon now sends the same `AZQUEST` hello and anonymous quest-evidence protocol through the currently applicable **PARTY**, **RAID**, **INSTANCE_CHAT**, and **GUILD** addon-message transports. This allows Alliance and Horde Azeroth Questing clients to exchange research when WoW places them in a supported shared cross-faction group, instance group, raid, or guild.
+
+* **Improved** transport scheduling so group/instance and guild deliveries are queued ahead of the same-faction custom-channel copy and only one addon transmission is attempted per existing send tick. This preserves the existing throttle-aware queue instead of multiplying several sends into one tick.
+
+* **Added** a short session-only inbound deduplication window keyed by sender and protocol message. When overlapping transports deliver the same `AZQUEST` payload to one client, it is processed once so a party/guild/channel fan-out does not create duplicate Companion research observations. The deduplication cache is memory-only and is cleared on `/reload` or logout.
+
+* **Improved** the **Connected Players** Settings page and `/aq peers` diagnostics to recognize peers heard through all supported Azeroth Questing transports rather than only the custom channel. Player names remain session-only and are not added to SavedVariables or uploaded to the Azeroth Questing Server.
+
+* **Kept** the network payload protocol and Companion/server research schema unchanged. No Companion, Website, or Azeroth Questing Server build is required specifically for multi-transport peer delivery; existing anonymous `source = "peer"` observations continue through the same Companion queue.
+
+* **Changed** the addon version from `0.3.0-beta.8` to `0.3.0-beta.9` because Beta 8 had already been published/consumed before cross-faction shared-context transport was approved.
+
+*This v0.3.0 Beta 9 multi-transport behavior has not yet been tested inside World of Warcraft. Test an Alliance and Horde client running Beta 9 in a supported cross-faction party/raid/instance group and, separately if available, a cross-faction guild. Verify `/aq peers` and **Settings > AddOns > Azeroth Questing** can see the opposite-faction peer, a quest-evidence event is accepted once rather than once per overlapping transport, the existing same-faction custom-channel path still works, and leaving the shared WoW context removes that direct cross-faction path. Azeroth Questing still cannot directly discover arbitrary opposite-faction players who share no WoW-supported group/guild context; global aggregation continues through Azeroth Questing Companion and Azeroth Questing Server. No successful Beta 9 in-game or cross-faction test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 8 - September 11, 2026 - Available on GitHub Pre-release**
 
 * **Fixed** the Azeroth Questing entry failing to appear under **WoW Settings > AddOns** during the first in-game Settings test. The Connected Players page introduced in Beta 6 and still present in Beta 7 was not registered in the visible AddOns category in the reported live client session.

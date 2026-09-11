@@ -6,6 +6,14 @@ local PEER_ACTIVE_WINDOW = 90
 local MAX_SETTINGS_PEER_ROWS = 14
 local MAX_SETTINGS_REGISTRATION_RETRIES = 10
 
+local VALID_NETWORK_CHANNELS = {
+    CHANNEL = true,
+    PARTY = true,
+    RAID = true,
+    INSTANCE_CHAT = true,
+    GUILD = true,
+}
+
 local sessionPeers = {}
 local settingsPanel = nil
 local settingsRows = {}
@@ -204,7 +212,7 @@ local function CreateSettingsPanel()
     explanation:SetPoint("TOPLEFT", panel.connectedCount, "BOTTOMLEFT", 0, -4)
     explanation:SetPoint("TOPRIGHT", -24, -4)
     explanation:SetJustifyH("LEFT")
-    explanation:SetText("A player is considered connected after this client hears AZQUEST traffic from them within the last 90 seconds.")
+    explanation:SetText("A player is considered connected after this client hears AZQUEST traffic from them within the last 90 seconds through the custom channel or a shared party, raid, instance, or guild transport.")
 
     local headers = {
         { text = "Player", x = 16, width = 250 },
@@ -326,7 +334,7 @@ local function OnAddonMessage(prefix, text, channel, sender)
     channel = AccessibleString(channel)
     sender = AccessibleString(sender)
 
-    if prefix ~= PREFIX or channel ~= "CHANNEL" or not text or not sender then
+    if prefix ~= PREFIX or not VALID_NETWORK_CHANNELS[channel] or not text or not sender then
         return
     end
     if SenderIsPlayer(sender) then
