@@ -8,7 +8,7 @@ local HELLO_INTERVAL = 30
 local PEER_ACTIVE_WINDOW = 90
 local MAX_PENDING = 300
 local MAX_PEER_ROWS = 12
-local INBOUND_DEDUP_WINDOW = 10
+local INBOUND_DEDUP_WINDOW = 20
 
 local VALID_NETWORK_CHANNELS = {
     CHANNEL = true,
@@ -72,6 +72,58 @@ local function AccessibleString(value)
         return nil
     end
     return value
+end
+
+local function NormalizeRealmToken(realm)
+    if type(realm) ~= "string" or realm == "" then
+        return nil
+    end
+    realm = realm:gsub("[%s%-']", ""):lower()
+    if realm == "" then
+        return nil
+    end
+    return realm
+end
+
+local function LocalRealmToken()
+    if GetNormalizedRealmName then
+        local ok, realm = pcall(GetNormalizedRealmName)
+        if ok then
+            realm = NormalizeRealmToken(realm)
+            if realm then
+                return realm
+            end
+        end
+    end
+    if GetRealmName then
+        local ok, realm = pcall(GetRealmName)
+        if ok then
+            return NormalizeRealmToken(realm)
+        end
+    end
+    return nil
+end
+
+local function SenderIdentityKey(sender)
+    sender = AccessibleString(sender)
+    if not sender or sender == "" then
+        return nil
+    end
+
+    sender = sender:match("^%s*(.-)%s*$")
+    local name, realm = sender:match("^([^-]+)%-(.+)$")
+    if not name then
+        name = sender
+        realm = LocalRealmToken()
+    else
+        realm = NormalizeRealmToken(realm)
+    end
+
+    name = name:lower()
+    if realm then
+        return name .. "@" .. realm
+    end
+    return name
 end
 
 local function AddonVersion()
@@ -770,7 +822,12 @@ local function IsDuplicateInbound(sender, text)
         lastInboundPrune = now
     end
 
-    local key = sender .. "\031" .. text
+    local senderKey = SenderIdentityKey(sender)
+    if not senderKey then
+        return false
+    end
+
+    local key = senderKey .. "\031" .. text
     local seenAt = recentInbound[key]
     recentInbound[key] = now
     return seenAt ~= nil and now - seenAt <= INBOUND_DEDUP_WINDOW
