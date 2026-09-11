@@ -1,0 +1,44 @@
+## Interface: 120100
+# Live Retail interface. Do not replace this with PTR/test interface metadata.
+## Title: Azeroth Questing
+## Notes: Shows unfinished quests for your current zone and points you toward the selected quest.
+## Author: OpenAI + Player
+## Version: 0.3.0-beta.12
+## IconTexture: Interface\Icons\INV_Misc_Map_01
+## SavedVariables: ZoneQuestGuideDB
+## SavedVariablesPerCharacter: AzerothQuestingCharacterDB
+## X-Wago-ID: EGPeM3N1
+## OptionalDependencies: WagoAnalytics
+
+libs\LibStub\LibStub.lua
+libs\WagoAnalytics\Shim.lua
+QuestData.lua
+QuestLockouts.lua
+Core.lua
+QuestStatus.lua
+TimePhases.lua
+TimelineZones.lua
+TimelineSync.lua
+UldumTimeline.lua
+TirisfalTimeline.lua
+ArathiTimeline.lua
+PhaseLearning.lua
+CompanionSync.lua
+MapQuestLearning.lua
+QuestCatalog.lua
+CompletedQuestReport.lua
+CompletedQuestClient.lua
+AzerothNetwork.lua
+Settings.lua
+InstanceLearning.lua
+ContributionPrompt.lua
+WagoTelemetry.lua
+UIExtras.lua
+QuestPriority.lua
+LocationHints.lua
+QuestAutomation.lua
+DailyQuests.lua
+CampaignSkip.lua
+NavigationHUD.lua
+PhaseGuidance.lua
+SlashDiagnostics.lua
