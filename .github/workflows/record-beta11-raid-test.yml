@@ -1,0 +1,61 @@
+name: Record Beta 11 RAID test
+
+on:
+  push:
+    paths:
+      - '.github/workflows/record-beta11-raid-test.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Record verified in-game RAID test
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('CHANGELOG.md')
+          text = path.read_text(encoding='utf-8')
+
+          old_remaining = 'Remaining transport validation still includes the reverse cross-faction PARTY direction, RAID, and final custom-channel/deduplication checks before Stable approval.*'
+          new_remaining = 'Remaining transport validation still includes the reverse cross-faction PARTY direction and final custom-channel/deduplication checks before Stable approval.*'
+          if old_remaining in text:
+              text = text.replace(old_remaining, new_remaining, 1)
+
+          anchor = '* **Verified in World of Warcraft** that the **INSTANCE_CHAT** transport is actually carrying `AZQUEST` addon traffic in a Follower Dungeon instance group. `IsInGroup(LE_PARTY_CATEGORY_INSTANCE)` returned `true`, and an independent `CHAT_MSG_ADDON` watcher captured live `AZQUEST RECEIVED: INSTANCE_CHAT` events, including `Moralni-Bonechewer`. The same watcher also saw overlapping `GUILD` and custom `CHANNEL` copies from another peer, proving that the instance transport itself was active rather than merely inferred from the Connected Players list. This verifies live **INSTANCE_CHAT** delivery; bidirectional INSTANCE_CHAT is not separately claimed from this single watcher capture.\n'
+          bullet = '\n* **Verified in World of Warcraft** that the **RAID** transport is carrying `AZQUEST` addon traffic in a manually converted raid group. After the party was converted to a raid, an independent `CHAT_MSG_ADDON` watcher captured repeated live `AZQUEST RECEIVED: RAID` events from the other Azeroth Questing client. The same watcher also showed overlapping `GUILD` and custom `CHANNEL` copies, confirming that the RAID transport itself was active rather than merely inferred from peer visibility. This verifies live **RAID** delivery in the tested direction; bidirectional RAID is not separately claimed from this watcher capture.\n'
+
+          if bullet.strip() not in text:
+              if anchor not in text:
+                  raise SystemExit('INSTANCE_CHAT changelog anchor not found')
+              text = text.replace(anchor, anchor + bullet, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit test record and remove helper
+        shell: bash
+        run: |
+          rm -f .github/workflows/record-beta11-raid-test.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md .github/workflows/record-beta11-raid-test.yml
+          git commit -m "Record Beta 11 RAID transport test"
+          git push origin HEAD:main
+
+      - name: Synchronize Beta 11 GitHub Pre-release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          awk 'BEGIN{keep=0} /^\*\*VERSION 0\.3\.0 Beta 11 /{keep=1} /^---$/{if(keep){exit}} keep{print}' CHANGELOG.md > /tmp/beta11-notes.md
+          gh release edit addon-v0.3.0-beta.11 --notes-file /tmp/beta11-notes.md
