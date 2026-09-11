@@ -1,0 +1,83 @@
+from pathlib import Path
+
+network = Path("AzerothNetwork.lua")
+text = network.read_text(encoding="utf-8")
+old = """local function OutgoingRestricted()
+    if not C_ChatInfo then
+        return true
+    end
+    if C_ChatInfo.AreOutgoingAddonChatMessagesRestricted then
+        local ok, restricted = pcall(C_ChatInfo.AreOutgoingAddonChatMessagesRestricted)
+        if ok and restricted then
+            return true
+        end
+    end
+    if C_ChatInfo.InChatMessagingLockdown then
+        local ok, restricted = pcall(C_ChatInfo.InChatMessagingLockdown)
+        if ok and restricted then
+            return true
+        end
+    end
+    return false
+end
+"""
+new = """local function OutgoingRestricted()
+    if not C_ChatInfo then
+        return true
+    end
+    -- AreOutgoingAddonChatMessagesRestricted() is not a valid preflight
+    -- for C_ChatInfo.SendAddonMessage(). On normal Retail realms it can
+    -- report true while PARTY addon messages are still accepted. Let the
+    -- addon-message API return its own result code instead; only the actual
+    -- chat-messaging lockdown state blocks this queue preemptively.
+    if C_ChatInfo.InChatMessagingLockdown then
+        local ok, restricted = pcall(C_ChatInfo.InChatMessagingLockdown)
+        if ok and restricted then
+            return true
+        end
+    end
+    return false
+end
+"""
+if old not in text:
+    raise SystemExit("Expected OutgoingRestricted block was not found; refusing to patch")
+network.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+toc = Path("AzerothQuesting.toc")
+text = toc.read_text(encoding="utf-8")
+if "## Version: 0.3.0-beta.9" not in text:
+    raise SystemExit("Expected Beta 9 version was not found; refusing to patch")
+if "## Interface: 120100" not in text:
+    raise SystemExit("Expected Interface 120100 was not found; refusing to patch")
+text = text.replace("## Version: 0.3.0-beta.9", "## Version: 0.3.0-beta.10", 1)
+text = text.replace("## Interface: 120100", "## Interface: 120105", 1)
+toc.write_text(text, encoding="utf-8")
+
+changelog = Path("CHANGELOG.md")
+text = changelog.read_text(encoding="utf-8")
+heading = "# Azeroth Questing Changelog\n\n"
+if not text.startswith(heading):
+    raise SystemExit("Unexpected CHANGELOG.md heading; refusing to patch")
+if "**VERSION 0.3.0 Beta 10 -" in text:
+    raise SystemExit("Beta 10 changelog entry already exists; refusing duplicate")
+entry = """**VERSION 0.3.0 Beta 10 - September 11, 2026 - Available on GitHub Pre-release**
+
+* **Fixed** Azeroth Questing Network PARTY, RAID, INSTANCE_CHAT, GUILD, and custom-channel delivery being blocked on normal Retail realms before `C_ChatInfo.SendAddonMessage()` was called. Beta 9 incorrectly treated `C_ChatInfo.AreOutgoingAddonChatMessagesRestricted()` as a blanket addon-protocol transport restriction.
+
+* **Verified the Beta 9 failure mode in World of Warcraft** with two simultaneously logged-in accounts. The same-faction party test reported `IsInGroup() = true`, `InChatMessagingLockdown() = false`, and `AreOutgoingAddonChatMessagesRestricted() = true`, while a direct `C_ChatInfo.SendAddonMessage("AZQUEST", ..., "PARTY")` call returned result `0` (Success). This demonstrated that WoW accepted the PARTY addon message while Beta 9's own pre-send guard suppressed its queued hello/evidence traffic.
+
+* **Changed** the network preflight to gate only on the actual `InChatMessagingLockdown()` state and otherwise call `SendAddonMessage`, allowing its result code and the existing throttle/retry handling to decide whether a transport send is accepted.
+
+* **Updated** the Retail TOC interface metadata from `120100` to `120105` for the current 12.1.5 client and changed the addon version from `0.3.0-beta.9` to `0.3.0-beta.10` because Beta 9 had already been published and consumed before this live PARTY test found the blocker.
+
+* **Kept** the `AZQUEST` wire protocol, privacy model, peer deduplication, Companion handoff, and Azeroth Questing Server schema unchanged. No Companion, Website, or Azeroth Questing Server build is required for this fix.
+
+*Beta 10 has not yet been tested inside World of Warcraft. After updating both test clients, verify a same-faction PARTY peer appears on both clients, repeat across realms, then test Horde/Alliance in a supported cross-faction party. Confirm Connected Players and `/aq peers` show one peer rather than duplicates and that no Lua errors occur. No successful Beta 10 in-game test is claimed yet.*
+
+---
+
+"""
+changelog.write_text(heading + entry + text[len(heading):], encoding="utf-8")
+
+Path(".github/apply_beta10_patch.py").unlink()
+Path(".github/workflows/apply-beta10-network-fix.yml").unlink()
