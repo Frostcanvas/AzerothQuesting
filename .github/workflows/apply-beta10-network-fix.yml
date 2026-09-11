@@ -1,17 +1,15 @@
 name: Apply AzerothQuesting Beta 10 network fix
 
 on:
-  workflow_dispatch:
   push:
     paths:
-      - '.github/workflows/apply-beta10-network-fix.yml'
+      - .github/workflows/apply-beta10-network-fix.yml
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -23,12 +21,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY'
+          python3 - <<'PY'
           from pathlib import Path
 
-          network = Path('AzerothNetwork.lua')
-          text = network.read_text(encoding='utf-8')
-          old = '''local function OutgoingRestricted()
+          network = Path("AzerothNetwork.lua")
+          text = network.read_text(encoding="utf-8")
+          old = """local function OutgoingRestricted()
               if not C_ChatInfo then
                   return true
               end
@@ -46,8 +44,8 @@ jobs:
               end
               return false
           end
-          '''
-          new = '''local function OutgoingRestricted()
+          """
+          new = """local function OutgoingRestricted()
               if not C_ChatInfo then
                   return true
               end
@@ -64,25 +62,25 @@ jobs:
               end
               return false
           end
-          '''
+          """
           if old not in text:
-              raise SystemExit('Expected OutgoingRestricted block was not found; refusing to patch')
-          network.write_text(text.replace(old, new, 1), encoding='utf-8')
+              raise SystemExit("Expected OutgoingRestricted block was not found; refusing to patch")
+          network.write_text(text.replace(old, new, 1), encoding="utf-8")
 
-          toc = Path('AzerothQuesting.toc')
-          text = toc.read_text(encoding='utf-8')
-          if '## Version: 0.3.0-beta.9' not in text:
-              raise SystemExit('Expected Beta 9 version was not found; refusing to patch')
-          text = text.replace('## Version: 0.3.0-beta.9', '## Version: 0.3.0-beta.10', 1)
-          text = text.replace('## Interface: 120100', '## Interface: 120105', 1)
-          toc.write_text(text, encoding='utf-8')
+          toc = Path("AzerothQuesting.toc")
+          text = toc.read_text(encoding="utf-8")
+          if "## Version: 0.3.0-beta.9" not in text:
+              raise SystemExit("Expected Beta 9 version was not found; refusing to patch")
+          text = text.replace("## Version: 0.3.0-beta.9", "## Version: 0.3.0-beta.10", 1)
+          text = text.replace("## Interface: 120100", "## Interface: 120105", 1)
+          toc.write_text(text, encoding="utf-8")
 
-          changelog = Path('CHANGELOG.md')
-          text = changelog.read_text(encoding='utf-8')
-          heading = '# Azeroth Questing Changelog\n\n'
+          changelog = Path("CHANGELOG.md")
+          text = changelog.read_text(encoding="utf-8")
+          heading = "# Azeroth Questing Changelog\n\n"
           if not text.startswith(heading):
-              raise SystemExit('Unexpected CHANGELOG.md heading; refusing to patch')
-          entry = '''**VERSION 0.3.0 Beta 10 - September 11, 2026 - Available on GitHub Pre-release**
+              raise SystemExit("Unexpected CHANGELOG.md heading; refusing to patch")
+          entry = """**VERSION 0.3.0 Beta 10 - September 11, 2026 - Available on GitHub Pre-release**
 
 * **Fixed** Azeroth Questing Network PARTY, RAID, INSTANCE_CHAT, GUILD, and custom-channel delivery being blocked on normal Retail realms before `C_ChatInfo.SendAddonMessage()` was called. Beta 9 incorrectly treated `C_ChatInfo.AreOutgoingAddonChatMessagesRestricted()` as a blanket addon-protocol transport restriction.
 
@@ -98,12 +96,12 @@ jobs:
 
 ---
 
-'''
-          if '**VERSION 0.3.0 Beta 10 -' in text:
-              raise SystemExit('Beta 10 changelog entry already exists; refusing duplicate')
-          changelog.write_text(heading + entry + text[len(heading):], encoding='utf-8')
+"""
+          if "**VERSION 0.3.0 Beta 10 -" in text:
+              raise SystemExit("Beta 10 changelog entry already exists; refusing duplicate")
+          changelog.write_text(heading + entry + text[len(heading):], encoding="utf-8")
 
-          Path('.github/workflows/apply-beta10-network-fix.yml').unlink()
+          Path(".github/workflows/apply-beta10-network-fix.yml").unlink()
           PY
 
           git diff --check
@@ -114,8 +112,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add AzerothNetwork.lua AzerothQuesting.toc CHANGELOG.md .github/workflows/apply-beta10-network-fix.yml
           git commit -m 'Release addon v0.3.0-beta.10 network send fix'
           git push origin HEAD:main
