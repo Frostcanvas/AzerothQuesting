@@ -1,0 +1,77 @@
+name: Release addon Beta 7 quest names
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event.head_commit.message == 'Prepare addon Beta 7 quest names'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Apply research quest-name transport
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text, old, new, label):
+              if old not in text:
+                  raise SystemExit(f"Missing expected block: {label}")
+              return text.replace(old, new, 1)
+
+          path = Path('CompanionSync.lua')
+          text = path.read_text(encoding='utf-8')
+          old = '''local function WireToken(value)\n    value = tostring(value or "")\n    value = value:gsub("[|\\r\\n]", "_")\n    return value\nend\n\nlocal function GetStore()'''
+          new = '''local function WireToken(value)\n    value = tostring(value or "")\n    value = value:gsub("[|\\r\\n]", "_")\n    return value\nend\n\nlocal function SafeString(value)\n    if value == nil then\n        return nil\n    end\n    if canaccessvalue and not canaccessvalue(value) then\n        return nil\n    end\n    if type(value) ~= "string" or value == "" then\n        return nil\n    end\n    return value\nend\n\nlocal function QuestTitle(questID, context)\n    local title = SafeString(context and context.questName)\n    if title then\n        return title\n    end\n\n    if ZQG.GetQuestCatalogStore then\n        local store = ZQG.GetQuestCatalogStore()\n        local record = store and store.records and store.records[questID]\n        title = record and SafeString(record.name) or nil\n        if title then\n            return title\n        end\n    end\n\n    if C_QuestLog and C_QuestLog.GetTitleForQuestID then\n        local ok, value = pcall(C_QuestLog.GetTitleForQuestID, questID)\n        if ok then\n            title = SafeString(value)\n            if title then\n                return title\n            end\n        end\n    end\n\n    return nil\nend\n\nlocal function HexEncode(value)\n    value = SafeString(value)\n    if not value then\n        return ""\n    end\n\n    local encoded = {}\n    for index = 1, #value do\n        encoded[index] = string.format("%02X", string.byte(value, index))\n    end\n    return table.concat(encoded)\nend\n\nlocal function GetStore()'''
+          text = replace_once(text, old, new, 'title helpers')
+          text = replace_once(text, '        version = 2,', '        version = 3,', 'store default version')
+          text = replace_once(text, '    store.version = 2', '    store.version = 3', 'store version')
+          text = replace_once(text,
+              '    local addonVersion = AddonVersion()\n    local key = string.format("%d-%d", observedAt, sequence)',
+              '    local addonVersion = AddonVersion()\n    local questName = QuestTitle(questID, context)\n    local key = string.format("%d-%d", observedAt, sequence)',
+              'quest title capture')
+          text = replace_once(text,
+              '        questID = questID,\n        mapID = mapID,',
+              '        questID = questID,\n        questName = questName,\n        mapID = mapID,',
+              'observation quest name')
+          old_comment = '''    -- Companion-friendly wire record. The Companion can safely extract this\n    -- fixed delimiter format from SavedVariables without executing or generally\n    -- parsing Lua. AQO1 fields contain only addon-generated tokens.'''
+          new_comment = '''    -- Keep the original AQO1 record so older Companions can still upload the\n    -- observation. When a title is known, AQO2 adds the same observation key plus\n    -- a hex-encoded UTF-8 quest title; updated Companions prefer AQO2 for that key.'''
+          text = replace_once(text, old_comment, new_comment, 'wire comment')
+          anchor = '''    observation.wire = table.concat({\n        "AQO1",\n        WireToken(key),\n        WireToken(source),\n        tostring(questID),\n        tostring(mapID),\n        WireToken(evidence),\n        WireToken(faction),\n        tostring(classID),\n        WireToken(classFile),\n        tostring(level),\n        completed and "1" or "0",\n        tostring(observedAt),\n        WireToken(addonVersion),\n    }, "|")\n\n    store.observations[#store.observations + 1] = observation'''
+          replacement = '''    observation.wire = table.concat({\n        "AQO1",\n        WireToken(key),\n        WireToken(source),\n        tostring(questID),\n        tostring(mapID),\n        WireToken(evidence),\n        WireToken(faction),\n        tostring(classID),\n        WireToken(classFile),\n        tostring(level),\n        completed and "1" or "0",\n        tostring(observedAt),\n        WireToken(addonVersion),\n    }, "|")\n\n    if questName then\n        observation.wire2 = table.concat({\n            "AQO2",\n            WireToken(key),\n            WireToken(source),\n            tostring(questID),\n            tostring(mapID),\n            WireToken(evidence),\n            WireToken(faction),\n            tostring(classID),\n            WireToken(classFile),\n            tostring(level),\n            completed and "1" or "0",\n            tostring(observedAt),\n            WireToken(addonVersion),\n            HexEncode(questName),\n        }, "|")\n    end\n\n    store.observations[#store.observations + 1] = observation'''
+          text = replace_once(text, anchor, replacement, 'AQO2 wire')
+          path.write_text(text, encoding='utf-8')
+
+          toc_path = Path('AzerothQuesting.toc')
+          toc = toc_path.read_text(encoding='utf-8')
+          toc = replace_once(toc, '## Version: 0.3.0-beta.6', '## Version: 0.3.0-beta.7', 'addon version')
+          toc_path.write_text(toc, encoding='utf-8')
+
+          changelog_path = Path('CHANGELOG.md')
+          changelog = changelog_path.read_text(encoding='utf-8')
+          header = '# Azeroth Questing Changelog\n\n'
+          if not changelog.startswith(header):
+              raise SystemExit('Unexpected addon changelog header')
+          entry = '''**VERSION 0.3.0 Beta 7 - September 11, 2026 - Available on GitHub Pre-release**\n\n* **Added** quest-title enrichment to normal Companion research observations. When Azeroth Questing knows a quest name from the live quest API or its account-wide Quest Catalog, it now records that title beside the quest ID so the Website Quest Repository can show the readable quest name instead of only `Quest <ID>`.\n\n* **Added** backward-compatible `AQO2` research records for named quests. The existing `AQO1` record is preserved for older Companions, while `AQO2` carries the same anonymous observation key plus a hex-encoded UTF-8 quest title that cannot break the SavedVariables delimiter format.\n\n* **Improved** research synchronization schema metadata from version 2 to version 3 without adding character name, realm, account identity, or peer sender identity. Quest titles are public game data and remain attached only to the anonymous quest observation.\n\n* **Changed** the addon version from `0.3.0-beta.6` to `0.3.0-beta.7` because Beta 6 had already been published/consumed before research quest-title transport was requested.\n\n*This v0.3.0 Beta 7 quest-title transport has not yet been tested inside World of Warcraft. Azeroth Questing Companion `0.1.9-beta.8` or newer is required to prefer and upload `AQO2` titles, and Azeroth Questing Server API `0.2.6` or newer is required to accept/store them. The Website Quest Repository already supports displaying and searching `quest_name`, so no Website build is required for this change. Verify a known named quest produces both AQO1 and AQO2 records after WoW saves SavedVariables, that older AQO1 observations still synchronize, and that no character/realm identity is added. No successful in-game, Windows runtime, live server, or production website test is claimed yet.*\n\n---\n'''
+          if '**VERSION 0.3.0 Beta 7 -' in changelog:
+              raise SystemExit('Addon Beta 7 changelog entry already exists')
+          changelog_path.write_text(header + entry + changelog[len(header):], encoding='utf-8')
+          PY
+          git diff --check
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+          luac -p CompanionSync.lua
+      - name: Commit and push Beta 7
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CompanionSync.lua AzerothQuesting.toc CHANGELOG.md
+          git commit -m "Release addon v0.3.0-beta.7 research quest names"
+          git push origin main
