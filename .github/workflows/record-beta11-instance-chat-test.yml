@@ -1,0 +1,67 @@
+name: Record Beta 11 INSTANCE_CHAT test
+
+on:
+  push:
+    paths:
+      - '.github/workflows/record-beta11-instance-chat-test.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Record verified in-game INSTANCE_CHAT test
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('CHANGELOG.md')
+          text = path.read_text(encoding='utf-8')
+
+          old = 'Remaining transport validation still includes cross-faction PARTY, RAID, INSTANCE_CHAT, and any final custom-channel/deduplication checks before Stable approval.*'
+          new = 'Remaining transport validation still includes the reverse cross-faction PARTY direction, RAID, and final custom-channel/deduplication checks before Stable approval.*'
+          if old in text:
+              text = text.replace(old, new, 1)
+
+          anchor = '* **Verified in World of Warcraft** that the **PARTY** transport also works across both faction and realm boundaries in the tested Alliance-to-Horde direction. With the Alliance client grouped with `Moralni-Bonechewer` on a different realm and running `0.3.0-beta.11`, **Connected Players** showed **1 player** with a fresh Last Seen value. This confirms live cross-faction + cross-realm PARTY peer discovery from the Alliance client. The reverse Horde-to-Alliance direction has not yet been separately evidenced, so bidirectional cross-faction PARTY is not claimed yet.\n'
+          bullet = '\n* **Verified in World of Warcraft** that the **INSTANCE_CHAT** transport is actually carrying `AZQUEST` addon traffic in a Follower Dungeon instance group. `IsInGroup(LE_PARTY_CATEGORY_INSTANCE)` returned `true`, and an independent `CHAT_MSG_ADDON` watcher captured live `AZQUEST RECEIVED: INSTANCE_CHAT` events, including `Moralni-Bonechewer`. The same watcher also saw overlapping `GUILD` and custom `CHANNEL` copies from another peer, proving that the instance transport itself was active rather than merely inferred from the Connected Players list. This verifies live **INSTANCE_CHAT** delivery; bidirectional INSTANCE_CHAT is not separately claimed from this single watcher capture.\n'
+
+          if bullet.strip() not in text:
+              if anchor not in text:
+                  raise SystemExit('Beta 11 PARTY anchor not found; refusing to patch changelog')
+              text = text.replace(anchor, anchor + bullet, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit test record and remove helper
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/record-beta11-instance-chat-test.yml
+          git add CHANGELOG.md
+          git commit -m "Record Beta 11 INSTANCE_CHAT in-game test"
+          git push origin HEAD:main
+
+      - name: Synchronize Beta 11 GitHub Pre-release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          python3 - <<'PY' > /tmp/release-notes.md
+          from pathlib import Path
+          text = Path('CHANGELOG.md').read_text(encoding='utf-8')
+          start = text.index('**VERSION 0.3.0 Beta 11')
+          end = text.index('\n---', start)
+          print(text[start:end].strip())
+          PY
+          gh release edit addon-v0.3.0-beta.11 --notes-file /tmp/release-notes.md
