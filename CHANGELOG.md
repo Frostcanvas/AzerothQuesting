@@ -10,7 +10,7 @@
 
 * **Kept** the AZQUEST wire payload, privacy model, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only fix.
 
-*Beta 12 still requires in-game validation. Repeat the controlled overlap test with one sender reachable through PARTY or RAID plus GUILD and CHANNEL: the raw watcher should show multiple transport copies of the same payload while the receiving peer's Messages count increases by exactly one. No successful Beta 12 in-game deduplication test is claimed yet.*
+* **Verified in World of Warcraft** that Beta 12 fixes the overlapping-transport duplicate-processing failure found in Beta 11. In the same controlled two-account setup, with **PARTY**, **GUILD**, and custom **CHANNEL** all available, the unique AZQUEST overlap test was repeated and the receiving peer's **Messages** count increased from **2 to 3** instead of by three. This confirms the Beta 12 inbound deduplication change collapses the overlapping copies into one logical peer message in the tested live Retail session. No claim is made here about transports or directions not separately tested above.
 
 ---
 
