@@ -4,10 +4,15 @@ local PREFIX = "AZQUEST"
 local PROTOCOL_VERSION = 1
 local PEER_ACTIVE_WINDOW = 90
 local MAX_SETTINGS_PEER_ROWS = 14
+local MAX_SETTINGS_REGISTRATION_RETRIES = 10
 
 local sessionPeers = {}
 local settingsPanel = nil
 local settingsRows = {}
+local settingsRegistrationRetryCount = 0
+local settingsRegistrationRetryScheduled = false
+
+local EnsureSettingsRegistration
 
 local function AccessibleString(value)
     if value == nil then
@@ -155,12 +160,18 @@ local function RefreshSettingsPanel()
     end
 end
 
+local function SettingsAPIReady()
+    return Settings
+        and Settings.RegisterCanvasLayoutCategory
+        and Settings.RegisterAddOnCategory
+end
+
 local function CreateSettingsPanel()
     if settingsPanel then
         return settingsPanel
     end
 
-    if not Settings or not Settings.RegisterCanvasLayoutCategory or not Settings.RegisterAddOnCategory then
+    if not SettingsAPIReady() then
         return nil
     end
 
@@ -273,8 +284,39 @@ local function CreateSettingsPanel()
     Settings.RegisterAddOnCategory(category)
 
     settingsPanel = panel
+    settingsRegistrationRetryScheduled = false
     ZQG.AzerothQuestingSettingsCategory = category
 
+    return panel
+end
+
+local function ScheduleSettingsRegistrationRetry()
+    if settingsPanel
+        or settingsRegistrationRetryScheduled
+        or settingsRegistrationRetryCount >= MAX_SETTINGS_REGISTRATION_RETRIES
+        or not C_Timer
+        or not C_Timer.After
+    then
+        return
+    end
+
+    settingsRegistrationRetryScheduled = true
+    settingsRegistrationRetryCount = settingsRegistrationRetryCount + 1
+    C_Timer.After(1, function()
+        settingsRegistrationRetryScheduled = false
+        EnsureSettingsRegistration()
+    end)
+end
+
+EnsureSettingsRegistration = function()
+    if settingsPanel then
+        return settingsPanel
+    end
+
+    local panel = CreateSettingsPanel()
+    if not panel then
+        ScheduleSettingsRegistrationRetry()
+    end
     return panel
 end
 
@@ -297,14 +339,34 @@ end
 
 local events = CreateFrame("Frame")
 events:RegisterEvent("ADDON_LOADED")
+events:RegisterEvent("PLAYER_LOGIN")
 events:RegisterEvent("CHAT_MSG_ADDON")
 events:SetScript("OnEvent", function(_, event, ...)
     if event == "ADDON_LOADED" then
         local addonName = ...
-        if addonName == ADDON_NAME then
-            CreateSettingsPanel()
+        if addonName == ADDON_NAME
+            or addonName == "Blizzard_Settings"
+            or addonName == "Blizzard_Settings_Shared"
+        then
+            EnsureSettingsRegistration()
         end
+    elseif event == "PLAYER_LOGIN" then
+        EnsureSettingsRegistration()
     elseif event == "CHAT_MSG_ADDON" then
         OnAddonMessage(...)
     end
 end)
+
+-- Blizzard's current Settings implementation guide recommends registering addon
+-- settings from ContinueOnAddOnLoaded. Keep the event/login retries above as a
+-- fallback so one early unavailable Settings API check cannot permanently hide
+-- the category for the rest of the session.
+if EventUtil and EventUtil.ContinueOnAddOnLoaded then
+    EventUtil.ContinueOnAddOnLoaded(ADDON_NAME, EnsureSettingsRegistration)
+end
+
+if C_Timer and C_Timer.After then
+    C_Timer.After(0, EnsureSettingsRegistration)
+else
+    EnsureSettingsRegistration()
+end
