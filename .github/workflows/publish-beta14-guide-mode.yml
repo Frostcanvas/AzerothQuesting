@@ -1,0 +1,96 @@
+name: Publish addon Beta 14 guide mode
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/publish-beta14-guide-mode.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      ENTRY_B64: IyBBemVyb3RoIFF1ZXN0aW5nIENoYW5nZWxvZwoKKipWRVJTSU9OIDAuMy4wIEJldGEgMTQgLSBTZXB0ZW1iZXIgMTEsIDIwMjYgLSBBdmFpbGFibGUgb24gR2l0SHViIFByZS1yZWxlYXNlKioKCiogKipBZGRlZCoqIGFuIG9wdGlvbmFsIFp5Z29yLXN0eWxlICoqR3VpZGUgTW9kZSoqIHRoYXQgcHJlc2VudHMgb25lIHF1ZXN0IHN0ZXAgYXQgYSB0aW1lIGluc3RlYWQgb2YgcmVxdWlyaW5nIHRoZSBwbGF5ZXIgdG8gd29yayBmcm9tIHRoZSBmdWxsIHpvbmUgbGlzdC4gVGhlIGNvbXBhY3QgZ3VpZGUgc2hvd3MgdGhlIGN1cnJlbnQgcXVlc3QsIGl0cyBsaXZlIHN0YXR1cywgdXAgdG8gZm91ciBvYmplY3RpdmUgbGluZXMgd2hlbiBXb1cgZXhwb3NlcyB0aGVtLCBhbmQgYSBzaW1wbGUgaW5zdHJ1Y3Rpb24gdG8gcGljayB1cCwgY29tcGxldGUsIG9yIHR1cm4gaW4gdGhlIHF1ZXN0LgoKKiAqKkFkZGVkKiogYXV0b21hdGljIHN0ZXAgcHJvZ3Jlc3Npb24uIEd1aWRlIE1vZGUgc3RheXMgb24gdGhlIHNhbWUgcXVlc3QgYXMgaXQgbW92ZXMgZnJvbSAqKkFWQUlMQUJMRSoqIHRvICoqSU4gUFJPR1JFU1MqKiB0byAqKlRVUk4gSU4qKiwgdGhlbiBhZHZhbmNlcyB0byB0aGUgbmV4dCB1bmZpbmlzaGVkIHF1ZXN0IGFmdGVyIHRoZSBjb21wbGV0ZWQgcXVlc3QgbGVhdmVzIHRoZSBhY3RpdmUgbGlzdC4gQ29tcGxldGVkIHF1ZXN0cyBhcmUgc2tpcHBlZCBieSB0aGUgZXhpc3RpbmcgY29tcGxldGlvbi9wcmVyZXF1aXNpdGUgZmlsdGVyaW5nLgoKKiAqKkFkZGVkKiogKipCYWNrKiosICoqTmV4dCoqLCAqKlF1ZXN0IExpc3QqKiwgYW5kICoqU2hvdyBab25lIFF1ZXN0cyAvIFNob3cgRGFpbHkgLyBXZWVrbHkqKiBjb250cm9scyBzbyBwbGF5ZXJzIGNhbiBtb3ZlIHRocm91Z2ggdGhlIGd1aWRlIG1hbnVhbGx5LCByZW9wZW4gdGhlIGZ1bGwgcXVlc3QgbGlzdCwgb3Igc3dpdGNoIHRoZSBCZXRhIDEzIGZyZXF1ZW5jeSB2aWV3IHdpdGhvdXQgbGVhdmluZyBHdWlkZSBNb2RlLiBNYW51YWwgcXVlc3Qtcm93IHNlbGVjdGlvbiBhbHNvIHN5bmNocm9uaXplcyB0aGUgY29tcGFjdCBndWlkZSB0YXJnZXQuCgoqICoqSW1wcm92ZWQqKiBuYXZpZ2F0aW9uIGludGVncmF0aW9uIGJ5IHJvdXRpbmcgR3VpZGUgTW9kZSB0YXJnZXRzIHRocm91Z2ggdGhlIGV4aXN0aW5nIEF6ZXJvdGggUXVlc3Rpbmcgd2F5cG9pbnQvbmF2aWdhdGlvbiBIVUQgcGlwZWxpbmUuIEFjY2VwdGVkIHF1ZXN0cyB1c2UgV29XIHF1ZXN0IHN1cGVyLXRyYWNraW5nOyBrbm93biB1bmFjY2VwdGVkIHF1ZXN0IGNvb3JkaW5hdGVzIGNvbnRpbnVlIHRvIHVzZSB0aGUgYWRkb24ncyB3YXlwb2ludCBhcnJvdyBiZWhhdmlvci4KCiogKipBZGRlZCoqIGAvYXEgZ3VpZGVgLCBgL2FxIGd1aWRlIG9uYCwgYC9hcSBndWlkZSBvZmZgLCBgL2FxIGd1aWRlIG5leHRgLCBhbmQgYC9hcSBndWlkZSBiYWNrYCBjb250cm9scy4gR3VpZGUgTW9kZSBpcyBlbmFibGVkIGJ5IGRlZmF1bHQgZm9yIG5ldy91cGdyYWRlZCBCZXRhIDE0IHNldHRpbmdzIGFuZCByZW1lbWJlcnMgaXRzIHNjcmVlbiBwb3NpdGlvbiBhbmQgd2hldGhlciB0aGUgcGxheWVyIGNsb3NlcyBpdC4KCiogKipLZXB0KiogdGhlIEF6ZXJvdGggUXVlc3RpbmcgTmV0d29yayBwcm90b2NvbCwgcmVzZWFyY2ggcGF5bG9hZHMsIENvbXBhbmlvbiBoYW5kb2ZmLCBXZWJzaXRlIGJlaGF2aW9yLCBhbmQgQXplcm90aCBRdWVzdGluZyBTZXJ2ZXIgc2NoZW1hIHVuY2hhbmdlZC4gTm8gQ29tcGFuaW9uLCBXZWJzaXRlLCBvciBzZXJ2ZXIgYnVpbGQgaXMgcmVxdWlyZWQgZm9yIHRoaXMgYWRkb24tb25seSBndWlkZS12aWV3IGNoYW5nZS4KCipCZXRhIDE0IHN0aWxsIHJlcXVpcmVzIGluLWdhbWUgdmFsaWRhdGlvbi4gVmVyaWZ5IEd1aWRlIE1vZGUgb3BlbnMgd2l0aG91dCBMdWEgZXJyb3JzLCBmb2xsb3dzIGFuIGF2YWlsYWJsZSBxdWVzdCB0aHJvdWdoIGFjY2VwdC9vYmplY3RpdmVzL3R1cm4taW4sIGF1dG9tYXRpY2FsbHkgYWR2YW5jZXMgYWZ0ZXIgdHVybi1pbiwgQmFjay9OZXh0IGFuZCB0aGUgWm9uZSB2cyBEYWlseS9XZWVrbHkgc3dpdGNoIHdvcmssIHRoZSBRdWVzdCBMaXN0IGJ1dHRvbiByZW1haW5zIHVzYWJsZSwgYW5kIHRoZSBleGlzdGluZyBuYXZpZ2F0aW9uIEhVRCBwb2ludHMgdG8gdGhlIHNlbGVjdGVkIGd1aWRlIHN0ZXAuIE5vIHN1Y2Nlc3NmdWwgQmV0YSAxNCBpbi1nYW1lIHRlc3QgaXMgY2xhaW1lZCB5ZXQuKgoKLS0tCgo=
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4 zip rsync
+
+      - name: Prepend Beta 14 changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -c 'import base64,pathlib,os; p=pathlib.Path("CHANGELOG.md"); old=p.read_text(encoding="utf-8"); old=old[len("# Azeroth Questing Changelog\n"):] if old.startswith("# Azeroth Questing Changelog\n") else old; p.write_text(base64.b64decode(os.environ["ENTRY_B64"]).decode("utf-8") + old.lstrip("\n"), encoding="utf-8")'
+
+      - name: Validate Beta 14
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -type f -name '*.lua' -not -path './.git/*' -print0 | xargs -0 -n1 luac -p
+          git diff --check
+          grep -q '^## Interface: 120100$' AzerothQuesting.toc
+          grep -q '^## Version: 0.3.0-beta.14$' AzerothQuesting.toc
+          grep -q '^GuideMode.lua$' AzerothQuesting.toc
+          grep -q '^\*\*VERSION 0.3.0 Beta 14 - September 11, 2026 - Available on GitHub Pre-release\*\*$' CHANGELOG.md
+
+      - name: Commit release changelog
+        id: release_commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add CHANGELOG.md
+          git commit -m 'Release addon v0.3.0-beta.14'
+          git push origin HEAD:main
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Build packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf package AzerothQuesting.zip AzerothQuesting-0.3.0-beta.14.zip
+          mkdir -p package/AzerothQuesting
+          rsync -a --exclude='.git' --exclude='.github' --exclude='package' --exclude='*.zip' ./ package/AzerothQuesting/
+          (cd package && zip -qr ../AzerothQuesting.zip AzerothQuesting)
+          cp AzerothQuesting.zip AzerothQuesting-0.3.0-beta.14.zip
+          awk -v version='0.3.0 Beta 14' 'BEGIN{found=0} /^\*\*VERSION /{if(found)exit; prefix="**VERSION " version " -"; if(index($0,prefix)==1)found=1} found{if($0=="---")exit; print}' CHANGELOG.md > release-notes-0.3.0-beta.14.md
+          test -s release-notes-0.3.0-beta.14.md
+
+      - name: Publish GitHub Pre-release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ steps.release_commit.outputs.sha }}
+        run: |
+          set -euo pipefail
+          TAG='addon-v0.3.0-beta.14'
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file release-notes-0.3.0-beta.14.md
+          else
+            gh release create "$TAG" --target "$RELEASE_SHA" --title 'Azeroth Questing v0.3.0-beta.14' --notes-file release-notes-0.3.0-beta.14.md --prerelease
+          fi
+          gh release upload "$TAG" AzerothQuesting.zip AzerothQuesting-0.3.0-beta.14.zip --clobber
+
+      - name: Remove temporary publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+          rm -f .github/workflows/publish-beta14-guide-mode.yml
+          git add -u .github/workflows/publish-beta14-guide-mode.yml
+          git commit -m 'Remove Beta 14 guide-mode publisher'
+          git push origin HEAD:main
