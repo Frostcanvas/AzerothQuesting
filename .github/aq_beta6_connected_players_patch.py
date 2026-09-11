@@ -39,18 +39,3 @@ if "**VERSION 0.3.0 Beta 6 -" in changelog:
     raise SystemExit("Beta 6 changelog entry already exists")
 changelog = header + decode(CHANGELOG_B64) + changelog[len(header):]
 write_text(changelog_path, changelog)
-
-workflow_path = ROOT / ".github/workflows/package.yml"
-workflow = workflow_path.read_text(encoding="utf-8")
-begin = "      # BEGIN AQ_BETA6_CONNECTED_PLAYERS_PATCH\n"
-end_marker = "      # END AQ_BETA6_CONNECTED_PLAYERS_PATCH\n"
-start = workflow.find(begin)
-end = workflow.find(end_marker, start if start >= 0 else 0)
-if start < 0 or end < 0:
-    raise SystemExit("Temporary workflow patch block missing")
-end += len(end_marker)
-if workflow[end:end + 1] == "\n":
-    end += 1
-write_text(workflow_path, workflow[:start] + workflow[end:])
-
-Path(__file__).unlink()
