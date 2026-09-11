@@ -1,0 +1,51 @@
+name: Polish addon Beta 9 network queue
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/addon-beta9-network-polish.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'Polish addon Beta 9 network queue'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Adjust queue capacity and prefix retry
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('AzerothNetwork.lua')
+          text = path.read_text(encoding='utf-8')
+          assert 'local MAX_PENDING = 100' in text
+          text = text.replace('local MAX_PENDING = 100', 'local MAX_PENDING = 300', 1)
+
+          old = '''local function ProcessPending()\n    if #pending == 0 then\n        return\n    end\n    if OutgoingRestricted() then\n        return\n    end\n\n    local item = pending[1]'''
+          new = '''local function ProcessPending()\n    if #pending == 0 then\n        return\n    end\n    if OutgoingRestricted() then\n        return\n    end\n    if not prefixRegistered then\n        RegisterPrefix()\n        if not prefixRegistered then\n            return\n        end\n    end\n\n    local item = pending[1]'''
+          assert old in text
+          text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+          luac -p AzerothNetwork.lua
+          git diff --check
+
+      - name: Commit polish
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add AzerothNetwork.lua
+          git commit -m "Polish addon v0.3.0-beta.9 network queue"
+          git push origin HEAD:main
