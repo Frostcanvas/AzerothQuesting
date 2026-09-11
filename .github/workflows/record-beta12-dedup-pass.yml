@@ -1,0 +1,63 @@
+name: Record Beta 12 deduplication pass
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/record-beta12-dedup-pass.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Record verified in-game deduplication test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('CHANGELOG.md')
+          text = path.read_text()
+          old = '''*Beta 12 still requires in-game validation. Repeat the controlled overlap test with one sender reachable through PARTY or RAID plus GUILD and CHANNEL: the raw watcher should show multiple transport copies of the same payload while the receiving peer's Messages count increases by exactly one. No successful Beta 12 in-game deduplication test is claimed yet.*'''
+          new = '''* **Verified in World of Warcraft** that Beta 12 fixes the overlapping-transport duplicate-processing failure found in Beta 11. In the same controlled two-account setup, with **PARTY**, **GUILD**, and custom **CHANNEL** all available, the unique AZQUEST overlap test was repeated and the receiving peer's **Messages** count increased from **2 to 3** instead of by three. This confirms the Beta 12 inbound deduplication change collapses the overlapping copies into one logical peer message in the tested live Retail session. No claim is made here about transports or directions not separately tested above.'''
+          if old not in text:
+              raise SystemExit('Could not find Beta 12 validation placeholder')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Synchronize Beta 12 GitHub Pre-release notes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          NOTES_FILE="$(mktemp)"
+          awk '
+            /^\*\*VERSION 0\.3\.0 Beta 12 -/ { found = 1 }
+            found {
+              if ($0 == "---") exit
+              print
+            }
+          ' CHANGELOG.md > "$NOTES_FILE"
+          test -s "$NOTES_FILE"
+          gh release edit addon-v0.3.0-beta.12 --notes-file "$NOTES_FILE"
+
+      - name: Commit test record and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/record-beta12-dedup-pass.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add CHANGELOG.md .github/workflows/record-beta12-dedup-pass.yml
+          git commit -m 'Record Beta 12 deduplication verification'
+          git push origin HEAD:main
