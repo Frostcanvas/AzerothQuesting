@@ -1,5 +1,6 @@
 name: Package AzerothQuesting
 
+# A release-prefixed push packages the current Beta and publishes its updater-visible GitHub Pre-release.
 on:
   push:
     branches:
