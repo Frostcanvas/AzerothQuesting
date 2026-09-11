@@ -1,5 +1,21 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 10 - September 11, 2026 - Available on GitHub Pre-release**
+
+* **Fixed** Azeroth Questing Network PARTY, RAID, INSTANCE_CHAT, GUILD, and custom-channel delivery being blocked on normal Retail realms before `C_ChatInfo.SendAddonMessage()` was called. Beta 9 incorrectly treated `C_ChatInfo.AreOutgoingAddonChatMessagesRestricted()` as a blanket addon-protocol transport restriction.
+
+* **Verified the Beta 9 failure mode in World of Warcraft** with two simultaneously logged-in accounts. The same-faction party test reported `IsInGroup() = true`, `InChatMessagingLockdown() = false`, and `AreOutgoingAddonChatMessagesRestricted() = true`, while a direct `C_ChatInfo.SendAddonMessage("AZQUEST", ..., "PARTY")` call returned result `0` (Success). This demonstrated that WoW accepted the PARTY addon message while Beta 9's own pre-send guard suppressed its queued hello/evidence traffic.
+
+* **Changed** the network preflight to gate only on the actual `InChatMessagingLockdown()` state and otherwise call `SendAddonMessage`, allowing its result code and the existing throttle/retry handling to decide whether a transport send is accepted.
+
+* **Updated** the Retail TOC interface metadata from `120100` to `120105` for the current 12.1.5 client and changed the addon version from `0.3.0-beta.9` to `0.3.0-beta.10` because Beta 9 had already been published and consumed before this live PARTY test found the blocker.
+
+* **Kept** the `AZQUEST` wire protocol, privacy model, peer deduplication, Companion handoff, and Azeroth Questing Server schema unchanged. No Companion, Website, or Azeroth Questing Server build is required for this fix.
+
+*Beta 10 has not yet been tested inside World of Warcraft. After updating both test clients, verify a same-faction PARTY peer appears on both clients, repeat across realms, then test Horde/Alliance in a supported cross-faction party. Confirm Connected Players and `/aq peers` show one peer rather than duplicates and that no Lua errors occur. No successful Beta 10 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 9 - September 11, 2026 - Available on GitHub Pre-release**
 
 * **Added** multi-transport Azeroth Questing Network delivery. In addition to the existing `AzerothQuesting` custom channel, the addon now sends the same `AZQUEST` hello and anonymous quest-evidence protocol through the currently applicable **PARTY**, **RAID**, **INSTANCE_CHAT**, and **GUILD** addon-message transports. This allows Alliance and Horde Azeroth Questing clients to exchange research when WoW places them in a supported shared cross-faction group, instance group, raid, or guild.

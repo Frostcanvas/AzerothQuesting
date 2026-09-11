@@ -135,12 +135,11 @@ local function OutgoingRestricted()
     if not C_ChatInfo then
         return true
     end
-    if C_ChatInfo.AreOutgoingAddonChatMessagesRestricted then
-        local ok, restricted = pcall(C_ChatInfo.AreOutgoingAddonChatMessagesRestricted)
-        if ok and restricted then
-            return true
-        end
-    end
+    -- AreOutgoingAddonChatMessagesRestricted() is not a valid preflight
+    -- for C_ChatInfo.SendAddonMessage(). On normal Retail realms it can
+    -- report true while PARTY addon messages are still accepted. Let the
+    -- addon-message API return its own result code instead; only the actual
+    -- chat-messaging lockdown state blocks this queue preemptively.
     if C_ChatInfo.InChatMessagingLockdown then
         local ok, restricted = pcall(C_ChatInfo.InChatMessagingLockdown)
         if ok and restricted then
