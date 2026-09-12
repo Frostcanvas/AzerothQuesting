@@ -36,7 +36,7 @@ end
 
 local function IsOnQuest(questID)
     return questID and C_QuestLog and C_QuestLog.IsOnQuest
-        and C_QuestLog.IsOnQuest(questID)
+        and C_QuestLog.IsQuestFlaggedCompleted and C_QuestLog.IsOnQuest(questID)
 end
 
 local function PlayerFaction()
@@ -576,7 +576,7 @@ local function Refresh()
     RequestQuestLines(state.mapID)
 
     local mapInfo = C_Map.GetMapInfo(state.mapID)
-    zoneText:SetText((mapInfo and mapInfo.name or "Unknown Zone") .. "  •  unfinished quests")
+    zoneText:SetText((mapInfo and mapInfo.name or "Unknown Zone") .. "  •  Map ID " .. tostring(state.mapID) .. "  •  unfinished quests")
 
     state.quests = CollectQuests(state.mapID)
     local displayQuests = GetDisplayQuests()
