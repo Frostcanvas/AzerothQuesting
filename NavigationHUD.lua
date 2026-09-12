@@ -45,7 +45,7 @@ local wasOnTaxi = IsOnTaxi()
 -- font and lets it rotate smoothly toward the selected destination.
 
 local hud = CreateFrame("Frame", "ZoneQuestGuideNavigationHUD", UIParent)
-hud:SetSize(330, 122)
+hud:SetSize(360, 140)
 hud:SetPoint("TOP", UIParent, "TOP", 0, -92)
 hud:SetFrameStrata("HIGH")
 hud:SetClampedToScreen(true)
@@ -54,91 +54,71 @@ hud:SetMovable(true)
 hud:RegisterForDrag("LeftButton")
 hud:Hide()
 
+-- Keep the HUD visually light like a guide arrow instead of a large panel.
+-- A faint backing remains so white objective text stays readable over bright zones.
 local background = hud:CreateTexture(nil, "BACKGROUND")
 background:SetAllPoints()
 background:SetTexture("Interface\\Buttons\\WHITE8X8")
-background:SetVertexColor(0, 0, 0, 0.42)
+background:SetVertexColor(0, 0, 0, 0.10)
 
 local statusText = hud:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-statusText:SetPoint("TOP", hud, "TOP", 0, -6)
-statusText:SetWidth(310)
+statusText:SetPoint("TOP", hud, "TOP", 0, -2)
+statusText:SetWidth(340)
 statusText:SetJustifyH("CENTER")
+statusText:SetShadowColor(0, 0, 0, 1)
+statusText:SetShadowOffset(1, -1)
+
+-- Use Blizzard's minimap arrow texture as a filled, high-contrast navigation
+-- arrow. This is much closer to the compact guide-arrow presentation players
+-- expect than the previous large boxed tracker.
+local arrowShadow = hud:CreateTexture(nil, "ARTWORK")
+arrowShadow:SetSize(76, 76)
+arrowShadow:SetPoint("CENTER", hud, "CENTER", 0, 15)
+arrowShadow:SetTexture("Interface\\Minimap\\MinimapArrow")
+arrowShadow:SetVertexColor(0, 0, 0, 0.90)
+
+local arrowTexture = hud:CreateTexture(nil, "OVERLAY")
+arrowTexture:SetSize(66, 66)
+arrowTexture:SetPoint("CENTER", hud, "CENTER", 0, 15)
+arrowTexture:SetTexture("Interface\\Minimap\\MinimapArrow")
+arrowTexture:SetVertexColor(0.35, 1.00, 0.08, 1)
 
 local targetText = hud:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-targetText:SetPoint("BOTTOM", hud, "BOTTOM", 0, 25)
-targetText:SetWidth(310)
+targetText:SetPoint("TOP", hud, "CENTER", 0, -22)
+targetText:SetWidth(350)
 targetText:SetJustifyH("CENTER")
 targetText:SetWordWrap(false)
+targetText:SetShadowColor(0, 0, 0, 1)
+targetText:SetShadowOffset(1, -1)
 
 local detailText = hud:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 detailText:SetPoint("TOP", targetText, "BOTTOM", 0, -3)
-detailText:SetWidth(310)
+detailText:SetWidth(350)
 detailText:SetJustifyH("CENTER")
+detailText:SetShadowColor(0, 0, 0, 1)
+detailText:SetShadowOffset(1, -1)
 
-local arrowLines = {}
-local arrowOutline = {}
-
-local function CreateArrowLine(thickness, r, g, b, a)
-    if not hud.CreateLine then
-        return nil
+local function SetArrowVisible(visible)
+    if visible then
+        arrowShadow:Show()
+        arrowTexture:Show()
+    else
+        arrowShadow:Hide()
+        arrowTexture:Hide()
     end
-
-    local line = hud:CreateLine(nil, "OVERLAY")
-    line:SetThickness(thickness)
-    line:SetColorTexture(r, g, b, a)
-    return line
-end
-
-for i = 1, 3 do
-    arrowOutline[i] = CreateArrowLine(12, 0, 0, 0, 0.9)
-    arrowLines[i] = CreateArrowLine(7, 0.25, 1, 0.20, 1)
-end
-
-local function SetLinePoints(line, x1, y1, x2, y2)
-    if not line then
-        return
-    end
-
-    line:ClearAllPoints()
-    line:SetStartPoint("CENTER", hud, "CENTER", x1, y1)
-    line:SetEndPoint("CENTER", hud, "CENTER", x2, y2)
 end
 
 local function DrawArrow(angle)
-    if not arrowLines[1] then
+    if type(angle) ~= "number" then
+        SetArrowVisible(false)
         return
     end
 
-    -- Relative angle zero is straight ahead, positive pi/2 is right.
-    local dirX = sin(angle)
-    local dirY = cos(angle)
-    local perpX = cos(angle)
-    local perpY = -sin(angle)
-
-    local baseY = 18
-    local frontX = dirX * 28
-    local frontY = baseY + (dirY * 28)
-    local backX = -dirX * 23
-    local backY = baseY - (dirY * 23)
-
-    local headBackX = frontX - (dirX * 21)
-    local headBackY = frontY - (dirY * 21)
-    local leftX = headBackX + (perpX * 16)
-    local leftY = headBackY + (perpY * 16)
-    local rightX = headBackX - (perpX * 16)
-    local rightY = headBackY - (perpY * 16)
-
-    local points = {
-        { backX, backY, frontX, frontY },
-        { frontX, frontY, leftX, leftY },
-        { frontX, frontY, rightX, rightY },
-    }
-
-    for i = 1, 3 do
-        local p = points[i]
-        SetLinePoints(arrowOutline[i], p[1], p[2], p[3], p[4])
-        SetLinePoints(arrowLines[i], p[1], p[2], p[3], p[4])
-    end
+    -- Positive relative angles mean the target is to the player's right.
+    -- Texture rotation uses the opposite sign for the expected on-screen turn.
+    arrowShadow:SetRotation(-angle)
+    arrowTexture:SetRotation(-angle)
+    SetArrowVisible(true)
 end
 
 local function GetStatusText(quest)
@@ -151,17 +131,67 @@ local function GetStatusText(quest)
         or "|cffffff66AVAILABLE|r"
 end
 
+local function AccessibleString(value)
+    if value == nil then
+        return nil
+    end
+    if canaccessvalue and not canaccessvalue(value) then
+        return nil
+    end
+    if type(value) ~= "string" then
+        return nil
+    end
+    return value
+end
+
+local function FirstObjectiveText(questID)
+    if not questID or not C_QuestLog or not C_QuestLog.GetQuestObjectives then
+        return nil
+    end
+
+    local ok, objectives = pcall(C_QuestLog.GetQuestObjectives, questID)
+    if not ok or type(objectives) ~= "table" then
+        return nil
+    end
+
+    local first
+    for _, objective in ipairs(objectives) do
+        local text = AccessibleString(objective and objective.text)
+        if text and text ~= "" then
+            first = first or text
+            if not objective.finished then
+                return text
+            end
+        end
+    end
+    return first
+end
+
 local function GetTargetLabel(quest)
     if not quest then
         return ""
     end
 
-    local text = quest.name or ("Quest " .. tostring(quest.id or ""))
+    local questName = quest.name or ("Quest " .. tostring(quest.id or ""))
+    local status = ZQG.GetQuestStatusKey and ZQG.GetQuestStatusKey(quest)
+        or (quest.accepted and "progress" or "available")
+
+    if status == "available" then
+        return "Pick up " .. questName
+    elseif status == "turnin" then
+        return "Turn in " .. questName
+    end
+
+    local objective = FirstObjectiveText(quest.id)
+    if objective then
+        return objective
+    end
+
     local hint = quest.id and ZQG.LocationHints and ZQG.LocationHints[quest.id] or nil
     if hint and hint.short then
-        text = text .. "  |cffffcc00[" .. hint.short .. "]|r"
+        return questName .. "  |cffffcc00[" .. hint.short .. "]|r"
     end
-    return text
+    return questName
 end
 
 local function GetRelativeAngle(quest, mapID)
@@ -274,20 +304,19 @@ local function UpdateDetailText()
         return
     end
 
-    -- Do not call GetUnitSpeed() here. On current Retail clients Blizzard can
-    -- return the player's movement speed as a secret value. Comparing or doing
-    -- arithmetic with that value from addon code can taint execution and throw
-    -- a Lua error. Distance uses map/world positions and remains useful without
-    -- requiring protected movement-speed data.
+    -- Do not derive an ETA from GetUnitSpeed(). Retail can expose movement
+    -- speed as a secret value, so the HUD intentionally shows safe map-based
+    -- distance only rather than risking taint for a timer.
     local distance = GetDistanceYards(selectedQuest, selectedMapID)
     local distanceText = FormatDistance(distance)
+    local questName = selectedQuest.name or ("Quest " .. tostring(selectedQuest.id or ""))
 
     if distanceText then
-        detailText:SetText(distanceText)
+        detailText:SetText(distanceText .. "  |cffb8b8b8• " .. questName .. "|r")
     elseif selectedQuest.accepted then
-        detailText:SetText("Tracked by WoW")
+        detailText:SetText("|cffb8b8b8" .. questName .. " • Tracked by WoW|r")
     else
-        detailText:SetText("Quest destination")
+        detailText:SetText("|cffb8b8b8" .. questName .. "|r")
     end
 end
 
@@ -504,6 +533,8 @@ hud:SetScript("OnUpdate", function(_, elapsed)
 
     local targetAngle = GetRelativeAngle(selectedQuest, selectedMapID)
     if targetAngle == nil then
+        lastAngleValid = false
+        DrawArrow(nil)
         return
     end
 
