@@ -405,10 +405,9 @@ local function RestoreStableWaypoint()
         return
     end
 
+    -- Keep taxi target hold entirely inside Azeroth Questing. Accepted quests
+    -- need no Blizzard super-track mutation; the AQ HUD can simply retain them.
     if quest.accepted then
-        if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
-            pcall(C_SuperTrack.SetSuperTrackedQuestID, quest.id)
-        end
         return
     end
 
@@ -418,10 +417,7 @@ local function RestoreStableWaypoint()
     end
 
     local point = UiMapPoint.CreateFromCoordinates(mapID, quest.x, quest.y)
-    local ok = pcall(C_Map.SetUserWaypoint, point)
-    if ok and C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
-        pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
-    end
+    pcall(C_Map.SetUserWaypoint, point)
 end
 
 local function HoldingTaxiTarget()
