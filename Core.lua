@@ -307,25 +307,34 @@ local function CollectAvailableQuestLines(mapID, result, seen)
         if questID then
             local x, y = info.x, info.y
             local name = info.questName or info.questLineName
+            local startMapID = info.startMapID
 
-            if (not x or not y) and C_QuestLine.GetQuestLineInfo then
+            -- Retail can return quest-line suggestions whose starter belongs to
+            -- another map even when the current UiMapID was requested. Resolve
+            -- startMapID when possible and keep only entries that actually start
+            -- on the current map. Entries without start-map metadata are kept for
+            -- backward compatibility with older/incomplete Blizzard data.
+            if (not x or not y or not startMapID) and C_QuestLine.GetQuestLineInfo then
                 local detailOK, detail = pcall(C_QuestLine.GetQuestLineInfo, questID, mapID)
                 if detailOK and type(detail) == "table" then
                     x = x or detail.x
                     y = y or detail.y
                     name = name or detail.questName or detail.questLineName
+                    startMapID = startMapID or detail.startMapID
                 end
             end
 
-            AddQuest(result, seen, {
-                id = questID,
-                name = GetQuestName(questID, name),
-                x = x,
-                y = y,
-                source = "questline",
-                isCampaign = info.isCampaign,
-                isLocalStory = info.isLocalStory,
-            })
+            if not startMapID or startMapID == 0 or startMapID == mapID then
+                AddQuest(result, seen, {
+                    id = questID,
+                    name = GetQuestName(questID, name),
+                    x = x,
+                    y = y,
+                    source = "questline",
+                    isCampaign = info.isCampaign,
+                    isLocalStory = info.isLocalStory,
+                })
+            end
         end
     end
 end
