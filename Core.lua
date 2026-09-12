@@ -36,7 +36,7 @@ end
 
 local function IsOnQuest(questID)
     return questID and C_QuestLog and C_QuestLog.IsOnQuest
-        and C_QuestLog.IsQuestFlaggedCompleted and C_QuestLog.IsOnQuest(questID)
+        and C_QuestLog.IsOnQuest(questID)
 end
 
 local function PlayerFaction()
