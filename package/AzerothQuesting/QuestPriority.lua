@@ -139,8 +139,9 @@ local function ApplyAvailableFirstPriority()
 
         if quest then
             local status = GetStatusText(quest)
-            local badge = quest.isCampaign and " [Campaign]"
-                or (quest.isLocalStory and " [Local Story]" or "")
+            local frequencyBadge = ZQG.GetQuestFrequencyBadge and ZQG.GetQuestFrequencyBadge(quest) or ""
+            local badge = frequencyBadge .. (quest.isCampaign and " [Campaign]"
+                or (quest.isLocalStory and " [Local Story]" or ""))
 
             row.text:SetText(string.format("%s  %s%s", status, quest.name, badge))
             row:Show()

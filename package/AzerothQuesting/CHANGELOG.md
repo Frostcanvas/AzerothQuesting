@@ -1,5 +1,57 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 15 - September 11, 2026 - Available on GitHub Pre-release**
+
+* **Redesigned** the floating navigation HUD to be much closer to the compact guide-arrow presentation shown in the in-game comparison: a large filled bright-green directional arrow, minimal translucent backing, centered objective text, and distance immediately underneath instead of a large boxed tracker dominating the screen.
+
+* **Improved** the navigation label so accepted quests prefer the first unfinished WoW objective (for example, a collect/kill instruction) while available quests say **Pick up <quest>** and completed accepted quests say **Turn in <quest>**. The quest name remains visible beside the distance for context.
+
+* **Improved** arrow readability with a dark shadow/outline and text shadows so the HUD stays readable against bright outdoor zones without restoring the heavy panel appearance.
+
+* **Changed** direction rendering to use Blizzard's built-in minimap arrow texture and rotate it toward the existing Azeroth Questing target. If a safe direction cannot be calculated, the arrow hides rather than showing a stale or misleading heading.
+
+* **Kept** movement-speed/ETA calculation out of the HUD because current Retail can expose movement speed as a protected/secret value. Distance remains map-position based, avoiding the taint issue while still providing the useful yard count.
+
+* **Kept** Guide Mode progression, quest-frequency tabs, Azeroth Questing Network protocol, research payloads, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only visual/navigation change.
+
+*Beta 15 still requires in-game validation. Verify the green arrow is visible and rotates toward a known quest destination, an active quest shows its current unfinished objective when WoW exposes one, available/turn-in wording is correct, distance remains sensible, Shift-drag positioning still works, and no Lua/taint errors occur. No successful Beta 15 in-game test is claimed yet.*
+
+---
+
+**VERSION 0.3.0 Beta 14 - September 11, 2026 - Available on GitHub Pre-release**
+
+* **Added** an optional Zygor-style **Guide Mode** that presents one quest step at a time instead of requiring the player to work from the full zone list. The compact guide shows the current quest, its live status, up to four objective lines when WoW exposes them, and a simple instruction to pick up, complete, or turn in the quest.
+
+* **Added** automatic step progression. Guide Mode stays on the same quest as it moves from **AVAILABLE** to **IN PROGRESS** to **TURN IN**, then advances to the next unfinished quest after the completed quest leaves the active list. Completed quests are skipped by the existing completion/prerequisite filtering.
+
+* **Added** **Back**, **Next**, **Quest List**, and **Show Zone Quests / Show Daily / Weekly** controls so players can move through the guide manually, reopen the full quest list, or switch the Beta 13 frequency view without leaving Guide Mode. Manual quest-row selection also synchronizes the compact guide target.
+
+* **Improved** navigation integration by routing Guide Mode targets through the existing Azeroth Questing waypoint/navigation HUD pipeline. Accepted quests use WoW quest super-tracking; known unaccepted quest coordinates continue to use the addon's waypoint arrow behavior.
+
+* **Added** `/aq guide`, `/aq guide on`, `/aq guide off`, `/aq guide next`, and `/aq guide back` controls. Guide Mode is enabled by default for new/upgraded Beta 14 settings and remembers its screen position and whether the player closes it.
+
+* **Kept** the Azeroth Questing Network protocol, research payloads, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only guide-view change.
+
+*Beta 14 still requires in-game validation. Verify Guide Mode opens without Lua errors, follows an available quest through accept/objectives/turn-in, automatically advances after turn-in, Back/Next and the Zone vs Daily/Weekly switch work, the Quest List button remains usable, and the existing navigation HUD points to the selected guide step. No successful Beta 14 in-game test is claimed yet.*
+
+---
+
+**VERSION 0.3.0 Beta 13 - September 11, 2026 - Available on GitHub Pre-release**
+
+* **Added** two switchable quest views to the main Azeroth Questing panel: **Zone Quests** for normal frequency-1 quests and **Daily / Weekly** for repeatable frequency-2 and frequency-3 quests. The selected tab is remembered locally for the player.
+
+* **Added** explicit weekly-quest classification alongside the existing daily handling. Azeroth Questing now normalizes quest-frequency information from gossip, quest-log, map, and quest-line APIs into one internal model: **1 normal**, **2 daily**, **3 weekly**.
+
+* **Improved** repeatable quest readability by labeling rows with **[Daily]** or **[Weekly]** in the Daily / Weekly tab while keeping campaign/local-story badges intact.
+
+* **Changed** filtering, quest counts, and auto-point behavior to follow the currently selected tab so switching to Daily / Weekly navigates within repeatable quests instead of continuing to point at a hidden normal zone quest.
+
+* **Kept** the Azeroth Questing Network protocol, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only UI/classification change.
+
+*Beta 13 still requires in-game validation. Verify the Zone Quests tab shows normal quests, the Daily / Weekly tab shows known blue daily/weekly quests with the correct badge, switching tabs updates the count and auto-point target, and no Lua errors occur. No successful Beta 13 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 12 - September 11, 2026 - Available on GitHub Pre-release**
 
 * **Fixed** overlapping Azeroth Questing Network copies not being deduplicated reliably across multiple WoW transports. During the Beta 11 in-game overlap test, one peer's **Messages** count increased from **9 to 12** after the same logical AZQUEST hello was sent through **PARTY**, **GUILD**, and the custom **CHANNEL**, showing that all three copies were processed instead of one.
@@ -10,7 +62,7 @@
 
 * **Kept** the AZQUEST wire payload, privacy model, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only fix.
 
-*Beta 12 still requires in-game validation. Repeat the controlled overlap test with one sender reachable through PARTY or RAID plus GUILD and CHANNEL: the raw watcher should show multiple transport copies of the same payload while the receiving peer's Messages count increases by exactly one. No successful Beta 12 in-game deduplication test is claimed yet.*
+* **Verified in World of Warcraft** that Beta 12 fixes the overlapping-transport duplicate-processing failure found in Beta 11. In the same controlled two-account setup, with **PARTY**, **GUILD**, and custom **CHANNEL** all available, the unique AZQUEST overlap test was repeated and the receiving peer's **Messages** count increased from **2 to 3** instead of by three. This confirms the Beta 12 inbound deduplication change collapses the overlapping copies into one logical peer message in the tested live Retail session. No claim is made here about transports or directions not separately tested above.
 
 ---
 

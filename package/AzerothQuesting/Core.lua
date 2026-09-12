@@ -530,13 +530,25 @@ footer:SetWidth(330)
 footer:SetJustifyH("LEFT")
 footer:SetText("/aq  show/hide    /aq refresh    /aq auto")
 
-local function UpdateRows()
+local function GetDisplayQuests()
+    if ZQG.FilterQuestsForDisplay then
+        local ok, filtered = pcall(ZQG.FilterQuestsForDisplay, state.quests)
+        if ok and type(filtered) == "table" then
+            return filtered
+        end
+    end
+    return state.quests
+end
+
+local function UpdateRows(displayQuests)
+    displayQuests = displayQuests or GetDisplayQuests()
     for i, row in ipairs(rows) do
-        local quest = state.quests[i]
+        local quest = displayQuests[i]
         row.quest = quest
         if quest then
             local status = quest.accepted and "|cff66ff66IN PROGRESS|r" or "|cffffff66AVAILABLE|r"
-            local badge = quest.isCampaign and " [Campaign]" or (quest.isLocalStory and " [Local Story]" or "")
+            local frequencyBadge = ZQG.GetQuestFrequencyBadge and ZQG.GetQuestFrequencyBadge(quest) or ""
+            local badge = frequencyBadge .. (quest.isCampaign and " [Campaign]" or (quest.isLocalStory and " [Local Story]" or ""))
             row.text:SetText(string.format("%s  %s%s", status, quest.name, badge))
             row:Show()
         else
@@ -567,15 +579,16 @@ local function Refresh()
     zoneText:SetText((mapInfo and mapInfo.name or "Unknown Zone") .. "  •  unfinished quests")
 
     state.quests = CollectQuests(state.mapID)
-    UpdateRows()
+    local displayQuests = GetDisplayQuests()
+    UpdateRows(displayQuests)
 
-    if #state.quests == 0 then
-        targetText:SetText("No unfinished quests found yet; older quests may need database coverage")
+    if #displayQuests == 0 then
+        targetText:SetText("No unfinished quests found in this tab")
         arrow:SetText("•")
     elseif DB.autoTrack then
-        SetWaypointForQuest(state.quests[1])
+        SetWaypointForQuest(displayQuests[1])
     else
-        targetText:SetText(string.format("%d unfinished quest%s found", #state.quests, #state.quests == 1 and "" or "s"))
+        targetText:SetText(string.format("%d unfinished quest%s in this tab", #displayQuests, #displayQuests == 1 and "" or "s"))
         arrow:SetText("↑")
     end
 end
