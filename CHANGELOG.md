@@ -1,6 +1,20 @@
 # Azeroth Questing Changelog
 
 
+**VERSION 0.3.0 Beta 21 - September 12, 2026 - Available on GitHub Pre-release**
+
+* **Added** the current Blizzard **UiMapID** to the main Azeroth Questing window's zone line, so testers can see the live map identity beside the zone name without opening chat diagnostics.
+
+* **Added** a compact **Map ID** readout to the floating navigation HUD while a guide target is active. This keeps the current UiMapID visible during normal guide play even when the main quest-list window is closed.
+
+* **Changed** the navigation HUD status layout slightly to reserve space for the map-ID readout without replacing the existing quest status, objective, arrow, distance, or hub-progress information.
+
+* **Kept** `/aq map`, AQM2 map research, Azeroth Questing Network, Companion synchronization, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only display change.
+
+*Beta 21 still requires in-game validation. In Valley of Trials, verify the main panel and compact HUD show Map ID 461, verify the value follows real map transitions/reloads, confirm the quest-status text still fits cleanly beside the HUD readout, and confirm no Lua/taint errors occur. No successful Beta 21 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 20 - September 12, 2026 - Available on GitHub Pre-release**
 
 * **Added** Zygor-style **quest hub steps**. When the current guide action is a pickup or a ready turn-in, Azeroth Questing can keep up to six safe nearby pickup/turn-in actions together instead of routing the player away after each individual quest.
@@ -69,7 +83,7 @@
 
 * **Kept** the Beta 16 lightweight Guide Mode approach: closing the main quest-list window does not disable guide selection or the compact navigation HUD. Quest-frequency tabs, research data, P2P networking, Companion handoff, Website behavior, and Azeroth Questing Server schema are unchanged, so no Companion, Website, or server build is required.
 
-*Beta 17 still requires in-game validation. Test a hub with at least two nearby available compatible quests: confirm the HUD says **PICK UP 2 QUESTS**, points to the first pickup, changes to the second pickup immediately after accepting the first, then changes to an objective/turn-in step after both are accepted. Repeat with the main quest-list window closed and verify the guide continues without Lua/taint errors. No successful Beta 17 in-game test is claimed yet.*
+*Beta 17 still requires in-game validation. Test a hub with at least two nearby available compatible quests: confirm the HUD says **PICK UP 2 QUESTS**, points to the first pickup, changes to the second pickup immediately after accepting the first, then changes to an objective/turn-in step after both are accepted. Repeat with the main quest-list window closed and verify the guide continues without Lua/taint errors. No successful in-game test is claimed yet.*
 
 ---
 
@@ -332,7 +346,7 @@
 
 * **Added** anonymous peer quest-evidence exchange for `available`, `offered`, `active`, and `turnedIn` observations. Messages carry only protocol version, quest ID, map ID, faction, class ID/token, completion state, and evidence type; sender names are not written to SavedVariables or the Companion queue.
 
-* **Added** a bounded Companion synchronization queue in SavedVariables. Local and accepted peer quest observations are queued with a stable observation key, timestamp, addon version, quest/map/evidence context, faction, class ID/token, level, and completion state so the future **Azeroth Questing Companion** can upload structured records to the Service01 API after WoW writes `AzerothQuesting.lua`.
+* **Added** a bounded Companion synchronization queue in SavedVariables. Local and accepted peer quest observations are queued with a stable observation key, timestamp, addon version, quest/map/evidence context, faction, class ID/token, level, completion state so the future **Azeroth Questing Companion** can upload structured records to the Service01 API after WoW writes `AzerothQuesting.lua`.
 
 * **Added** per-class quest learning. New observations now preserve WoW class ID/token counts (for example `MAGE`, `SHAMAN`, or `DRUID`) under each learned quest so server-side research can compare which classes actually observed a quest instead of mixing every class into one total.
 
@@ -557,7 +571,7 @@
 
 * **Added** automatic GitHub addon packaging. Pushes to `main` now build a GitHub Actions artifact named **ZoneQuestGuide**, providing a clean download instead of relying on GitHub's automatic `ZoneQuestGuide-main.zip` source archive.
 
-* **Improved** the package layout so the generated artifact contains a top-level `ZoneQuestGuide/` addon folder and excludes repository-only `.git` and `.github` metadata.
+* **Improved** the package layout so the generated artifact contains a top-level `ZoneQuestGuide/` folder and excludes repository-only `.git` and `.github` metadata.
 
 * **Added** GitHub Release packaging support. When a GitHub Release is published, the workflow builds and attaches a versioned package such as `ZoneQuestGuide-0.2.15.zip`.
 
