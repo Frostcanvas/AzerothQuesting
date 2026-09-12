@@ -1,6 +1,18 @@
 # Azeroth Questing Changelog
 
 
+**VERSION 0.3.0 Beta 22 - September 12, 2026 - Available on GitHub Pre-release**
+
+* **Fixed** available quest-line suggestions from other maps leaking into the current Azeroth Questing zone list. During Beta 21 testing in **Valley of Trials (UiMapID 461)**, Blizzard's quest-line query exposed **Club Foote** and **Find Baron Longshore** even though their starters belong outside the current starting-area map.
+
+* **Improved** current-map filtering by using Blizzard's `QuestLineInfo.startMapID` when it is available. A quest-line starter whose known start map differs from the player's current UiMapID is no longer added as a current-zone available quest or selected by Guide Mode/hub routing.
+
+* **Kept** live NPC-observed quests, accepted quests that WoW reports on the current map, curated current-map supplemental quests, map research/AQM2, Azeroth Questing Network, Companion synchronization, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only filtering fix.
+
+*Beta 22 still requires in-game validation. In Valley of Trials on Map ID 461, verify **Club Foote** and **Find Baron Longshore** no longer appear as current-zone pickups, normal Valley of Trials quests still appear, entering the quests' actual map later can surface them normally, hub routing does not point outside the current map, and no Lua/taint errors occur. No successful Beta 22 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 21 - September 12, 2026 - Available on GitHub Pre-release**
 
 * **Added** the current Blizzard **UiMapID** to the main Azeroth Questing window's zone line, so testers can see the live map identity beside the zone name without opening chat diagnostics.
@@ -184,7 +196,7 @@
 
 * **Verified in World of Warcraft** that the **INSTANCE_CHAT** transport is actually carrying `AZQUEST` addon traffic in a Follower Dungeon instance group. `IsInGroup(LE_PARTY_CATEGORY_INSTANCE)` returned `true`, and an independent `CHAT_MSG_ADDON` watcher captured live `AZQUEST RECEIVED: INSTANCE_CHAT` events, including `Moralni-Bonechewer`. The same watcher also saw overlapping `GUILD` and custom `CHANNEL` copies from another peer, proving that the instance transport itself was active rather than merely inferred from the Connected Players list. This verifies live **INSTANCE_CHAT** delivery; bidirectional INSTANCE_CHAT is not separately claimed from this single watcher capture.
 
-* **Verified in World of Warcraft** that the **RAID** transport is carrying `AZQUEST` addon traffic in a manually converted raid group. After the party was converted to a raid, an independent `CHAT_MSG_ADDON` watcher captured repeated live `AZQUEST RECEIVED: RAID` events from the other Azeroth Questing client. The same watcher also showed overlapping `GUILD` and custom `CHANNEL` copies, confirming that the RAID transport itself was active rather than merely inferred from peer visibility. This verifies live **RAID** delivery in the tested direction; bidirectional RAID is not separately claimed from this watcher capture.
+* **Verified in World of Warcraft** that the **RAID** transport is carrying `AZQUEST` addon traffic in a manually converted raid group. After the party was converted to a raid, an independent `CHAT_MSG_ADDON` watcher captured repeated live `AZQUEST RECEIVED: RAID` events from the other Azeroth Questing client. The same watcher also showed overlapping `GUILD` and custom `CHANNEL` copies, confirming that the RAID transport itself was active rather than merely inferred from peer visibility. This verifies live **RAID** delivery in the tested direction; bidirectional RAID is not separately claimed from this single watcher capture.
 
 ---
 
@@ -381,6 +393,7 @@
 *This v0.2.29 rename/migration has not yet been tested in World of Warcraft. After updating, do not load the old ZoneQuestGuide folder and AzerothQuesting at the same time. Verify the AddOn List name, `/aq` and legacy `/zq` commands, main panel, minimap button, navigation HUD, options/export windows, quest automation, timeline detection, `/aq check`, Wago registration if enabled, and the still-outstanding v0.2.28 breadcrumb lockout behavior. GitHub packaging is a build check only and must not be treated as an in-game test. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
 
 ---
+
 **VERSION 0.2.28 - August 29, 2026 - Available on GitHub**
 
 * **Added** Retail breadcrumb lockout data covering 881 breadcrumb quests and 1,161 breadcrumb-to-later-quest relationships extracted as quest-ID facts from the user-provided All The Things Retail/Standard metadata snapshot. Zone Quest Guide stores these relationships in its own `skippedBy` availability format rather than copying ATT quest records or code.
