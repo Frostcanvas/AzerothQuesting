@@ -1,6 +1,20 @@
 # Azeroth Questing Changelog
 
 
+**VERSION 0.3.0 Beta 23 - September 12, 2026 - Available on GitHub Pre-release**
+
+* **Fixed** the compact navigation arrow rendering 180 degrees backward/upside down relative to the intended target. The issue was visible in the live Ratchet screenshot while Azeroth Questing was targeting **Club Foote** only a few yards from Gazlowe.
+
+* **Changed** the Blizzard `MinimapArrow` texture rotation to apply its 180-degree base-orientation offset while preserving the existing relative-angle calculation, smoothing, shadow, and left/right turning behavior.
+
+* **Confirmed** from the in-game screenshot that **Club Foote** and **Find Baron Longshore** are genuinely offered by Gazlowe in **Ratchet, Northern Barrens (UiMapID 10)**. This supports the Beta 22 fix treating their appearance in **Valley of Trials (UiMapID 461)** as a cross-map quest-line leak rather than incorrect quest identity. The Beta 22 filtering behavior itself still needs a direct post-update check in Valley of Trials.
+
+* **Kept** the Beta 22 current-map quest filtering, Map ID display, Guide Mode/hub logic, AQM2 research, Azeroth Questing Network, Companion synchronization, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only navigation fix.
+
+*Beta 23 still requires in-game validation. After updating and `/reload`, use a nearby known quest target and verify the green arrow points toward the target rather than away from it as the character turns through front/right/back/left headings. Also confirm the Map ID text and hub status remain readable and no Lua/taint errors occur. No successful Beta 23 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 22 - September 12, 2026 - Available on GitHub Pre-release**
 
 * **Fixed** available quest-line suggestions from other maps leaking into the current Azeroth Questing zone list. During Beta 21 testing in **Valley of Trials (UiMapID 461)**, Blizzard's quest-line query exposed **Club Foote** and **Find Baron Longshore** even though their starters belong outside the current starting-area map.
