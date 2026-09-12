@@ -130,10 +130,11 @@ local function DrawArrow(angle)
         return
     end
 
-    -- Positive relative angles mean the target is to the player's right.
-    -- Texture rotation uses the opposite sign for the expected on-screen turn.
-    arrowShadow:SetRotation(-angle)
-    arrowTexture:SetRotation(-angle)
+    -- Blizzard's MinimapArrow texture points opposite our zero-angle guide
+    -- convention, so rotate it by 180 degrees while preserving left/right turn.
+    local textureAngle = pi - angle
+    arrowShadow:SetRotation(textureAngle)
+    arrowTexture:SetRotation(textureAngle)
     SetArrowVisible(true)
 end
 
