@@ -57,10 +57,9 @@ end
 -- ---------------------------------------------------------------------------
 -- Quest destination waypoint ownership / refresh
 -- ---------------------------------------------------------------------------
--- Azeroth Questing uses Blizzard user waypoints for unaccepted quests. Keep
--- track of the waypoint we created so changing the selected AVAILABLE quest
--- replaces the old destination instead of leaving a stale minimap/world-map
--- marker behind.
+-- Azeroth Questing may use a normal Blizzard map waypoint for an unaccepted
+-- quest, but it must not change Blizzard's C_SuperTrack state. The Blizzard
+-- Objective Tracker is left entirely under Blizzard/player control.
 
 local ownedWaypoint = {
     questID = nil,
@@ -133,10 +132,6 @@ local function ClearOwnedWaypoint()
     end
 
     if CurrentWaypointMatchesOwned() then
-        if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
-            pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, false)
-        end
-
         if C_Map and C_Map.ClearUserWaypoint then
             pcall(C_Map.ClearUserWaypoint)
         end
@@ -150,23 +145,16 @@ local function ManagedSetWaypointForQuest(quest)
         return false
     end
 
-    -- Accepted quests should use Blizzard quest super-tracking. Remove any
-    -- Azeroth Questing starter waypoint first so the minimap does not keep
-    -- pointing at the old quest giver.
+    -- Accepted quests are represented only in Azeroth Questing's own guide/HUD.
+    -- Do not call C_SuperTrack.SetSuperTrackedQuestID(), because repeated guide
+    -- retargeting must never alter Blizzard's Objective Tracker state.
     if quest.accepted then
         ClearOwnedWaypoint()
-
-        if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
-            local ok = pcall(C_SuperTrack.SetSuperTrackedQuestID, quest.id)
-            return ok
-        end
-
-        return false
+        return true
     end
 
-    -- A new AVAILABLE target replaces the previous Azeroth Questing waypoint.
-    -- If the new target has no coordinates, clearing the old marker is still
-    -- preferable to leaving the minimap pointing at the wrong quest.
+    -- A new AVAILABLE target replaces only the previous Azeroth Questing-owned
+    -- map waypoint. It is intentionally not made Blizzard's super-tracked target.
     ClearOwnedWaypoint()
 
     local mapID = C_Map and C_Map.GetBestMapForUnit
@@ -188,10 +176,6 @@ local function ManagedSetWaypointForQuest(quest)
     ownedWaypoint.mapID = mapID
     ownedWaypoint.x = quest.x
     ownedWaypoint.y = quest.y
-
-    if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
-        pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
-    end
 
     return true
 end
