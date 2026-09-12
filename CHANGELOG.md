@@ -1,5 +1,23 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 19 - September 12, 2026 - Available on GitHub Pre-release**
+
+* **Added** richer Blizzard-backed map identity evidence for phased and scenario content. Map research can now capture parent-map name, map-art ID, scenario name and current scenario step, difficulty name, player map position, and the previous UiMapID seen during the current play session in addition to the existing UiMapID/instance/phase context.
+
+* **Added** the backward-compatible `AQM2` research record. Beta 19 still writes the original `AQM1` record for older Companions, while `AQM2` appends the richer map-identity fields under the same observation key so updated Companions can prefer the more complete copy without creating duplicate observations.
+
+* **Improved** `/aq map` and `/aq map record` to show the evidence a tester can use to identify a map copy: Blizzard map and parent names/IDs, map-art ID, scenario and step, instance and difficulty context, coordinates, previous UiMapID, and any known Azeroth Questing phase evidence.
+
+* **Added** local map-identity confidence output to `/aq map`: **CONFIRMED** when Blizzard directly exposes a scenario name (or a named scenario instance), **LIKELY** when phase/instance context strongly distinguishes the copy, and **UNKNOWN** when the addon has only generic map metadata. The addon does not hard-code guesses for Battle for Darkshore, Battle for Stromgarde, or other phased zones.
+
+* **Improved** automatic collection by recording again when scenario state or player difficulty changes, while keeping session deduplication so movement coordinates alone do not create a stream of duplicate observations.
+
+* **Compatibility:** the original `AQM1` handoff remains available. Uploading the new `AQM2` evidence requires **Azeroth Questing Companion 0.1.9-beta.12 or newer** and **Azeroth Questing Server 0.2.12 / schema 5 or newer**. No Website build is required; the LAN Research Map IDs tab is provided by the Azeroth Questing Server.
+
+*Beta 19 still requires in-game validation. Verify `/aq map` does not cause Lua/taint errors, scenario/map-art/parent/coordinate fields appear only when WoW safely exposes them, previous-UiMapID transitions are sensible, and Battle for Darkshore / Battle for Stromgarde observations gain enough evidence to move from UNKNOWN to LIKELY or CONFIRMED without hard-coded assumptions. End-to-end AQM2 synchronization also remains to be verified with Companion Beta 12 and Server 0.2.12. No successful Beta 19 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 18 - September 12, 2026 - Available on GitHub Pre-release**
 
 * **Added** privacy-preserving **UiMapID research tracking** so Azeroth Questing can learn the different map copies used by phased and scenario content such as **Battle for Darkshore** and **Battle for Stromgarde** instead of treating every appearance of the zone as one map.

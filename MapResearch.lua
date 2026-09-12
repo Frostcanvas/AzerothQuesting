@@ -3,21 +3,70 @@ local ADDON_NAME, ZQG = ...
 local MAX_QUEUE = 5000
 local sessionContexts = {}
 local pendingRecord = false
+local lastMapID = 0
+local lastTransitionFromMapID = 0
+local lastTransitionToMapID = 0
 
 local function Print(msg)
     DEFAULT_CHAT_FRAME:AddMessage("|cff66ccffAzeroth Questing:|r " .. tostring(msg))
 end
 
+local function Accessible(value)
+    if value == nil then
+        return false
+    end
+    if canaccessvalue then
+        local ok, allowed = pcall(canaccessvalue, value)
+        if ok then
+            return allowed and true or false
+        end
+    end
+    return true
+end
+
+local function SafeString(value)
+    if not Accessible(value) or type(value) ~= "string" or value == "" then
+        return nil
+    end
+    return value
+end
+
+local function SafeNumber(value)
+    if not Accessible(value) or type(value) ~= "number" then
+        return nil
+    end
+    return value
+end
+
+local function SafeTable(value)
+    if type(value) ~= "table" then
+        return nil
+    end
+    if canaccesstable then
+        local ok, allowed = pcall(canaccesstable, value)
+        if ok and not allowed then
+            return nil
+        end
+    end
+    return value
+end
+
 local function AddonVersion()
     if C_AddOns and C_AddOns.GetAddOnMetadata then
         local ok, version = pcall(C_AddOns.GetAddOnMetadata, ADDON_NAME, "Version")
-        if ok and version and version ~= "" then
-            return version
+        if ok then
+            version = SafeString(version)
+            if version then
+                return version
+            end
         end
     elseif GetAddOnMetadata then
         local ok, version = pcall(GetAddOnMetadata, ADDON_NAME, "Version")
-        if ok and version and version ~= "" then
-            return version
+        if ok then
+            version = SafeString(version)
+            if version then
+                return version
+            end
         end
     end
     return "unknown"
@@ -26,24 +75,14 @@ end
 local function CurrentTime()
     if GetServerTime then
         local ok, value = pcall(GetServerTime)
-        if ok and type(value) == "number" and value > 0 then
-            return value
+        if ok then
+            value = SafeNumber(value)
+            if value and value > 0 then
+                return value
+            end
         end
     end
     return time and time() or 0
-end
-
-local function SafeString(value)
-    if value == nil then
-        return nil
-    end
-    if canaccessvalue and not canaccessvalue(value) then
-        return nil
-    end
-    if type(value) ~= "string" or value == "" then
-        return nil
-    end
-    return value
 end
 
 local function HexEncode(value)
@@ -83,7 +122,8 @@ end
 local function PlayerFaction()
     if UnitFactionGroup then
         local ok, faction = pcall(UnitFactionGroup, "player")
-        if ok and (faction == "Alliance" or faction == "Horde" or faction == "Neutral") then
+        if ok and Accessible(faction)
+            and (faction == "Alliance" or faction == "Horde" or faction == "Neutral") then
             return faction
         end
     end
@@ -93,8 +133,11 @@ end
 local function PlayerLevel()
     if UnitLevel then
         local ok, level = pcall(UnitLevel, "player")
-        if ok and type(level) == "number" then
-            return level
+        if ok then
+            level = SafeNumber(level)
+            if level then
+                return level
+            end
         end
     end
     return 0
@@ -128,26 +171,132 @@ local function PruneQueue(store)
     store.observations = compact
 end
 
+local function MapInfo(mapID)
+    if not C_Map or not C_Map.GetMapInfo or not mapID or mapID <= 0 then
+        return nil
+    end
+    local ok, info = pcall(C_Map.GetMapInfo, mapID)
+    info = ok and SafeTable(info) or nil
+    return info
+end
+
+local function MapArtID(mapID)
+    if not C_Map or not C_Map.GetMapArtID then
+        return 0
+    end
+    local ok, value = pcall(C_Map.GetMapArtID, mapID)
+    value = ok and SafeNumber(value) or nil
+    return value and math.floor(value) or 0
+end
+
+local function ScenarioContext()
+    local scenarioName
+    local scenarioStep
+
+    if C_Scenario and C_Scenario.GetInfo then
+        local ok, first = pcall(C_Scenario.GetInfo)
+        if ok then
+            local info = SafeTable(first)
+            if info then
+                scenarioName = SafeString(info.name) or SafeString(info.title)
+            else
+                scenarioName = SafeString(first)
+            end
+        end
+    end
+
+    if C_Scenario and C_Scenario.GetStepInfo then
+        local ok, first = pcall(C_Scenario.GetStepInfo)
+        if ok then
+            local info = SafeTable(first)
+            if info then
+                scenarioStep = SafeString(info.title) or SafeString(info.name) or SafeString(info.description)
+            else
+                scenarioStep = SafeString(first)
+            end
+        end
+    end
+
+    return scenarioName, scenarioStep
+end
+
+local function DifficultyName(difficultyID)
+    if not difficultyID or difficultyID <= 0 or not GetDifficultyInfo then
+        return nil
+    end
+    local ok, name = pcall(GetDifficultyInfo, difficultyID)
+    if ok then
+        return SafeString(name)
+    end
+    return nil
+end
+
+local function PlayerPosition(mapID)
+    if not C_Map or not C_Map.GetPlayerMapPosition then
+        return nil, nil
+    end
+
+    local ok, position = pcall(C_Map.GetPlayerMapPosition, mapID, "player")
+    if not ok or not position or not Accessible(position) then
+        return nil, nil
+    end
+
+    local x, y
+    if position.GetXY then
+        local xyOK, px, py = pcall(position.GetXY, position)
+        if xyOK then
+            x = SafeNumber(px)
+            y = SafeNumber(py)
+        end
+    end
+
+    if not x or not y or x < 0 or x > 1 or y < 0 or y > 1 then
+        return nil, nil
+    end
+    return x, y
+end
+
+local function PreviousMapIDFor(mapID)
+    if lastMapID > 0 and lastMapID ~= mapID then
+        return lastMapID
+    end
+    if lastTransitionToMapID == mapID and lastTransitionFromMapID > 0 then
+        return lastTransitionFromMapID
+    end
+    return 0
+end
+
+local function NoteMapTransition(mapID)
+    if lastMapID > 0 and lastMapID ~= mapID then
+        lastTransitionFromMapID = lastMapID
+        lastTransitionToMapID = mapID
+    end
+    lastMapID = mapID
+end
+
 local function CurrentMapContext()
     if not C_Map or not C_Map.GetBestMapForUnit then
         return nil
     end
 
     local ok, mapID = pcall(C_Map.GetBestMapForUnit, "player")
-    if not ok or type(mapID) ~= "number" or mapID <= 0 then
+    mapID = ok and SafeNumber(mapID) or nil
+    if not mapID or mapID <= 0 then
         return nil
     end
+    mapID = math.floor(mapID)
 
-    local mapName
-    local parentMapID = 0
-    local mapType = 0
-    if C_Map.GetMapInfo then
-        local infoOK, info = pcall(C_Map.GetMapInfo, mapID)
-        if infoOK and type(info) == "table" then
-            mapName = SafeString(info.name)
-            parentMapID = tonumber(info.parentMapID) or 0
-            mapType = tonumber(info.mapType) or 0
-        end
+    local info = MapInfo(mapID)
+    local mapName = info and SafeString(info.name) or nil
+    local parentMapID = info and tonumber(info.parentMapID) or 0
+    local mapType = info and tonumber(info.mapType) or 0
+    parentMapID = parentMapID or 0
+    mapType = mapType or 0
+
+    local parentMapName
+    local parentInfo = MapInfo(parentMapID)
+    if parentInfo then
+        parentMapName = SafeString(parentInfo.name)
     end
 
     local instanceName
@@ -172,17 +321,50 @@ local function CurrentMapContext()
         end
     end
 
+    local scenarioName, scenarioStep = ScenarioContext()
+    local positionX, positionY = PlayerPosition(mapID)
+
     return {
         mapID = mapID,
         mapName = mapName,
         parentMapID = parentMapID,
+        parentMapName = parentMapName,
         mapType = mapType,
+        mapArtID = MapArtID(mapID),
         instanceName = instanceName,
         instanceType = instanceType,
         difficultyID = difficultyID,
+        difficultyName = DifficultyName(difficultyID),
         instanceID = instanceID,
+        scenarioName = scenarioName,
+        scenarioStep = scenarioStep,
+        positionX = positionX,
+        positionY = positionY,
+        previousMapID = PreviousMapIDFor(mapID),
         phase = phase,
     }
+end
+
+local function ResearchIdentity(context)
+    if context.scenarioName then
+        return "CONFIRMED", context.scenarioName
+    end
+
+    if context.instanceType == "scenario" and context.instanceName then
+        return "CONFIRMED", context.instanceName
+    end
+
+    if context.phase then
+        local label = context.mapName or ("UiMapID " .. tostring(context.mapID))
+        return "LIKELY", label .. " - " .. context.phase
+    end
+
+    if context.instanceName and context.instanceType and context.instanceType ~= "none"
+        and context.instanceType ~= "none" then
+        return "LIKELY", context.instanceName
+    end
+
+    return "UNKNOWN", context.mapName or ("UiMapID " .. tostring(context.mapID))
 end
 
 local function ContextKey(context)
@@ -190,10 +372,14 @@ local function ContextKey(context)
         tostring(context.mapID or 0),
         tostring(context.parentMapID or 0),
         tostring(context.mapType or 0),
+        tostring(context.mapArtID or 0),
         tostring(context.instanceID or 0),
         tostring(context.difficultyID or 0),
         tostring(context.instanceType or "none"),
+        tostring(context.scenarioName or ""),
+        tostring(context.scenarioStep or ""),
         tostring(context.phase or ""),
+        tostring(context.previousMapID or 0),
     }, ":")
 end
 
@@ -205,6 +391,7 @@ local function QueueMapObservation(context, force)
 
     local signature = ContextKey(context)
     if not force and sessionContexts[signature] then
+        NoteMapTransition(context.mapID)
         return false
     end
     sessionContexts[signature] = true
@@ -228,11 +415,19 @@ local function QueueMapObservation(context, force)
         mapID = context.mapID,
         mapName = context.mapName,
         parentMapID = context.parentMapID,
+        parentMapName = context.parentMapName,
         mapType = context.mapType,
+        mapArtID = context.mapArtID,
         instanceName = context.instanceName,
         instanceType = context.instanceType,
         difficultyID = context.difficultyID,
+        difficultyName = context.difficultyName,
         instanceID = context.instanceID,
+        scenarioName = context.scenarioName,
+        scenarioStep = context.scenarioStep,
+        positionX = context.positionX,
+        positionY = context.positionY,
+        previousMapID = context.previousMapID,
         faction = faction,
         classID = classID,
         classFile = classFile,
@@ -242,6 +437,9 @@ local function QueueMapObservation(context, force)
         addonVersion = addonVersion,
     }
 
+    -- Keep AQM1 intact for older Companions. AQM2 reuses the same key and
+    -- appends richer Blizzard map/scenario evidence; newer Companions
+    -- prefer AQM2 when both records are present.
     observation.wire = table.concat({
         "AQM1",
         WireToken(key),
@@ -262,8 +460,37 @@ local function QueueMapObservation(context, force)
         WireToken(addonVersion),
     }, "|")
 
+    observation.wire2 = table.concat({
+        "AQM2",
+        WireToken(key),
+        tostring(context.mapID),
+        HexEncode(context.mapName),
+        tostring(context.parentMapID or 0),
+        tostring(context.mapType or 0),
+        HexEncode(context.instanceName),
+        WireToken(context.instanceType or "none"),
+        tostring(context.difficultyID or 0),
+        tostring(context.instanceID or 0),
+        WireToken(faction),
+        tostring(classID),
+        WireToken(classFile),
+        tostring(level),
+        HexEncode(context.phase),
+        tostring(observedAt),
+        WireToken(addonVersion),
+        HexEncode(context.parentMapName),
+        tostring(context.mapArtID or 0),
+        HexEncode(context.scenarioName),
+        HexEncode(context.scenarioStep),
+        HexEncode(context.difficultyName),
+        context.positionX and string.format("%.6f", context.positionX) or "",
+        context.positionY and string.format("%.6f", context.positionY) or "",
+        tostring(context.previousMapID or 0),
+    }, "|")
+
     store.observations[#store.observations + 1] = observation
     PruneQueue(store)
+    NoteMapTransition(context.mapID)
     return true
 end
 
@@ -278,27 +505,57 @@ local function PrintCurrentMap(forceRecord)
         QueueMapObservation(context, true)
     end
 
-    local details = {
-        string.format("UiMapID %d", context.mapID),
-        context.mapName or "Unknown map",
-    }
+    Print(string.format("UiMapID %d - %s", context.mapID, context.mapName or "Unknown map"))
+
     if context.parentMapID and context.parentMapID > 0 then
-        details[#details + 1] = "parent " .. tostring(context.parentMapID)
+        if context.parentMapName then
+            Print(string.format("Parent: %s (%d)", context.parentMapName, context.parentMapID))
+        else
+            Print("Parent UiMapID: " .. tostring(context.parentMapID))
+        end
     end
-    if context.instanceID and context.instanceID > 0 then
-        details[#details + 1] = "instance " .. tostring(context.instanceID)
+
+    if context.mapArtID and context.mapArtID > 0 then
+        Print("Map art ID: " .. tostring(context.mapArtID))
     end
+
+    if context.scenarioName then
+        Print("Scenario: " .. context.scenarioName)
+    end
+    if context.scenarioStep then
+        Print("Scenario step: " .. context.scenarioStep)
+    end
+
+    if context.instanceName and context.instanceType ~= "none" then
+        Print(string.format("Instance: %s (%s, ID %d)", context.instanceName, context.instanceType, context.instanceID or 0))
+    elseif context.instanceID and context.instanceID > 0 then
+        Print("Instance ID: " .. tostring(context.instanceID))
+    end
+
     if context.difficultyID and context.difficultyID > 0 then
-        details[#details + 1] = "difficulty " .. tostring(context.difficultyID)
+        if context.difficultyName then
+            Print(string.format("Difficulty: %s (%d)", context.difficultyName, context.difficultyID))
+        else
+            Print("Difficulty ID: " .. tostring(context.difficultyID))
+        end
+    end
+
+    if context.positionX and context.positionY then
+        Print(string.format("Position: %.1f, %.1f", context.positionX * 100, context.positionY * 100))
+    end
+    if context.previousMapID and context.previousMapID > 0 then
+        Print("Previous UiMapID: " .. tostring(context.previousMapID))
     end
     if context.phase then
-        details[#details + 1] = "phase " .. context.phase
+        Print("AQ phase evidence: " .. context.phase)
     end
-    Print(table.concat(details, " | ") .. (forceRecord and " | recorded" or ""))
+
+    local status, identity = ResearchIdentity(context)
+    Print(string.format("Research status: %s - %s%s", status, identity, forceRecord and " | recorded" or ""))
 end
 
 local function ScheduleRecord(delay)
-    if pendingRecord then
+    if pendingRecord or not C_Timer or not C_Timer.After then
         return
     end
     pendingRecord = true
@@ -314,6 +571,10 @@ events:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 events:RegisterEvent("ZONE_CHANGED")
 events:RegisterEvent("ZONE_CHANGED_INDOORS")
 pcall(events.RegisterEvent, events, "UNIT_PHASE")
+pcall(events.RegisterEvent, events, "SCENARIO_UPDATE")
+pcall(events.RegisterEvent, events, "SCENARIO_CRITERIA_UPDATE")
+pcall(events.RegisterEvent, events, "SCENARIO_COMPLETED")
+pcall(events.RegisterEvent, events, "PLAYER_DIFFICULTY_CHANGED")
 events:SetScript("OnEvent", function(_, event, unit)
     if event == "UNIT_PHASE" and unit and unit ~= "player" then
         return
@@ -339,3 +600,4 @@ end
 
 ZQG.QueueMapObservation = QueueMapObservation
 ZQG.GetCurrentMapResearchContext = CurrentMapContext
+ZQG.GetCurrentMapResearchIdentity = ResearchIdentity
