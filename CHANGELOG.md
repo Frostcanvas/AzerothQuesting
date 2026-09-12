@@ -1,5 +1,20 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 16 - September 12, 2026 - Available on GitHub Pre-release**
+
+* **Changed** Guide Mode to stop opening the large separate **Azeroth Questing Guide** window added in Beta 14. The guide now runs as a lightweight controller behind the compact navigation HUD instead of adding another boxed tracker to the game screen.
+
+* **Kept** Zygor-style step behavior: Azeroth Questing still follows one selected quest, updates the waypoint as quest state changes, advances after completed/turned-in quests disappear from the current list, and supports manual **Back** / **Next** selection through `/aq guide back` and `/aq guide next`.
+
+* **Kept** the compact Beta 15 navigation presentation as the visible guide surface: directional arrow, current objective/pickup/turn-in wording, quest context, and distance. The normal Azeroth Questing quest list remains available separately when the player wants the full list.
+
+* **Changed** `/aq guide`, `/aq guide on`, and `/aq guide off` to control the automatic guide-selection behavior without showing or hiding a second large frame. Status feedback is written to chat instead.
+
+* **Kept** quest-frequency tabs, quest research, P2P networking, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only Guide Mode UI change.
+
+*Beta 16 still requires in-game validation. Confirm no large Azeroth Questing Guide window appears after login/reload, the compact navigation HUD still follows the selected quest and objective, `/aq guide next` and `/aq guide back` change the guide target, quest turn-in advances normally, and no Lua/taint errors occur. No successful Beta 16 in-game test is claimed yet.*
+
+---
 **VERSION 0.3.0 Beta 15 - September 11, 2026 - Available on GitHub Pre-release**
 
 * **Redesigned** the floating navigation HUD to be much closer to the compact guide-arrow presentation shown in the in-game comparison: a large filled bright-green directional arrow, minimal translucent backing, centered objective text, and distance immediately underneath instead of a large boxed tracker dominating the screen.
