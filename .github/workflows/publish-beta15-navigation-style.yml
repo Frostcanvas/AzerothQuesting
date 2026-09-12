@@ -1,0 +1,86 @@
+name: Publish addon Beta 15 navigation HUD redesign
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/publish-beta15-navigation-style.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate Beta 15 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4 zip rsync
+          VERSION="$(awk '/^## Version:/ {print $3; exit}' AzerothQuesting.toc)"
+          test "$VERSION" = "0.3.0-beta.15"
+          grep -q '^\*\*VERSION 0.3.0 Beta 15 - September 11, 2026 - Available on GitHub Pre-release\*\*$' CHANGELOG.md
+          find . -type f -name '*.lua' -not -path './.git/*' -print0 | xargs -0 -n1 luac -p
+          git diff --check
+
+      - name: Build packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(awk '/^## Version:/ {print $3; exit}' AzerothQuesting.toc)"
+          rm -rf package AzerothQuesting.zip "AzerothQuesting-${VERSION}.zip"
+          mkdir -p package/AzerothQuesting
+          rsync -a --exclude='.git' --exclude='.github' --exclude='package' ./ package/AzerothQuesting/
+          (cd package && zip -qr ../AzerothQuesting.zip AzerothQuesting)
+          cp AzerothQuesting.zip "AzerothQuesting-${VERSION}.zip"
+
+      - name: Prepare release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          awk '
+            /^\*\*VERSION 0\.3\.0 Beta 15 -/ {found=1}
+            found && /^---$/ {exit}
+            found {print}
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md
+
+      - name: Publish GitHub Pre-release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG='addon-v0.3.0-beta.15'
+          TARGET_SHA="$(git rev-parse HEAD^)"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file release-notes.md
+          else
+            gh release create "$TAG" \
+              --target "$TARGET_SHA" \
+              --title 'Azeroth Questing v0.3.0-beta.15' \
+              --notes-file release-notes.md \
+              --prerelease
+          fi
+          gh release upload "$TAG" AzerothQuesting.zip AzerothQuesting-0.3.0-beta.15.zip --clobber
+
+      - name: Remove temporary publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/publish-beta15-navigation-style.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'Remove Beta 15 navigation HUD publisher'
+            git push origin HEAD:main
+          fi
