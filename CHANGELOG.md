@@ -1,6 +1,20 @@
 # Azeroth Questing Changelog
 
 
+**VERSION 0.3.0 Beta 26 - September 12, 2026 - Available on GitHub Pre-release**
+
+* **Fixed** the remaining Azeroth Questing guide paths that were still changing Blizzard's `C_SuperTrack` state after Beta 25. In the Troll Hunter retest, Blizzard's right-side Objective Tracker still disappeared and required `/reload`, proving Beta 25 did not fully isolate Azeroth Questing from Blizzard tracking state.
+
+* **Fixed** the later-loaded `QuestAutomation.lua` waypoint wrapper overriding Beta 25's safer Core behavior. That wrapper was still calling `C_SuperTrack.SetSuperTrackedQuestID()` for accepted quests and `C_SuperTrack.SetSuperTrackedUserWaypoint()` when creating or clearing Azeroth Questing starter waypoints. Beta 26 removes those mutations while retaining Azeroth Questing's own HUD selection and normal map waypoint ownership.
+
+* **Changed** flight-path target restoration in `NavigationHUD.lua` so it also keeps the held target entirely inside Azeroth Questing and no longer changes Blizzard quest/user-waypoint super-tracking while flying across intermediate maps.
+
+* **Kept** the Beta 24 local-routing behavior, Beta 23 arrow orientation, Map ID display, hub batching, AQM2 research, Azeroth Questing Network, Companion synchronization, Website behavior, and Azeroth Questing Server schema otherwise unchanged. No Companion, Website, or server build is required.
+
+*Beta 26 requires in-game validation. After updating, reproduce normal Troll starting-area quest pickup/progress/turn-in transitions without repeatedly using `/reload` and verify Blizzard's entire right-side Objective Tracker remains visible. Also verify Azeroth Questing's HUD/arrow continues to change targets, available-quest map waypoints remain usable, manual quest-row selection still works, and a taxi/zone transition does not introduce Lua or taint errors. The Beta 25 retest failed this Objective Tracker check; no successful Beta 26 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 25 - September 12, 2026 - Available on GitHub Pre-release**
 
 * **Changed** Azeroth Questing's normal guide-selection path so it no longer changes Blizzard's `C_SuperTrack` quest or user-waypoint state. Troll Hunter test footage showed Blizzard's built-in right-side Objective Tracker disappearing during quest transitions and returning after `/reload`; this Beta isolates Azeroth Questing's navigation from that Blizzard tracking state instead of assuming the disappearance was only a guide-priority problem.
@@ -204,7 +218,7 @@
 
 * **Kept** the Azeroth Questing Network protocol, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only UI/classification change.
 
-*Beta 13 still requires in-game validation. Verify the Zone Quests tab shows normal quests, the Daily / Weekly tab shows known blue daily/weekly quests with the correct badge, switching tabs updates the count and auto-point target, and no Lua errors occur. No successful in-game test is claimed yet.*
+*Beta 13 still requires in-game validation. Verify the Zone Quests tab shows normal quests, the Daily / Weekly tab shows known blue daily/weekly quests with the correct badge, switching tabs updates the count and auto-point target, and no Lua errors occur. No successful Beta 13 in-game test is claimed yet.*
 
 ---
 
