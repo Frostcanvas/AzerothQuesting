@@ -1,6 +1,18 @@
 # Azeroth Questing Changelog
 
 
+**VERSION 0.3.0 Beta 25 - September 12, 2026 - Available on GitHub Pre-release**
+
+* **Changed** Azeroth Questing's normal guide-selection path so it no longer changes Blizzard's `C_SuperTrack` quest or user-waypoint state. Troll Hunter test footage showed Blizzard's built-in right-side Objective Tracker disappearing during quest transitions and returning after `/reload`; this Beta isolates Azeroth Questing's navigation from that Blizzard tracking state instead of assuming the disappearance was only a guide-priority problem.
+
+* **Kept** accepted quests selected inside Azeroth Questing's own navigation HUD without calling `C_SuperTrack.SetSuperTrackedQuestID()`. Available quests can still receive a normal Blizzard map user waypoint when coordinates are available, but Azeroth Questing no longer calls `C_SuperTrack.SetSuperTrackedUserWaypoint()` to make that pin Blizzard's active super-track target.
+
+* **Kept** the Beta 24 local-routing behavior, Beta 23 arrow orientation, Map ID display, hub batching, AQM2 research, Azeroth Questing Network, Companion synchronization, Website behavior, and Azeroth Questing Server schema otherwise unchanged. No Companion, Website, or server build is required.
+
+*Beta 25 requires in-game validation. Reproduce the Troll starting-area sequence where the Blizzard Objective Tracker previously vanished, accepting and progressing several quests without `/reload`, and verify the right-side tracker remains visible. Also verify Azeroth Questing's own HUD/arrow still changes targets, available-quest map pins remain usable, manual quest-row selection works, and taxi/zone transitions do not introduce Lua or taint errors. If the Blizzard tracker still disappears with Beta 25, the next investigation should isolate other UI addons or a Blizzard UI-state issue rather than claiming this mitigation fixed the root cause. No successful Beta 25 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 24 - September 12, 2026 - Available on GitHub Pre-release**
 
 * **Fixed** Guide Mode treating every valid quest on a large UiMapID as equally local. In the live Durotar screenshot, the player was correctly on **Durotar (UiMapID 1)**, but Azeroth Questing automatically chose **Take it up with Tony** roughly **887 yd** away while the character already had active Durotar objectives nearby. This is a same-map routing problem, separate from the Beta 22 cross-map filtering bug.
@@ -158,7 +170,7 @@
 
 * **Kept** Guide Mode progression, quest-frequency tabs, Azeroth Questing Network protocol, research payloads, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only visual/navigation change.
 
-*Beta 15 still requires in-game validation. Verify the green arrow is visible and rotates toward a known quest destination, an active quest shows its current unfinished objective when WoW exposes one, available/turn-in wording is correct, distance remains sensible, Shift-drag positioning still works, and no Lua/taint errors occur. No successful Beta 15 in-game test is claimed yet.*
+*Beta 15 still requires in-game validation. Verify the green arrow is visible and rotates toward a known quest destination, an active quest shows its current unfinished objective when WoW exposes one, available/turn-in wording is correct, distance remains sensible, Shift-drag positioning still works, and no Lua/taint errors occur. No successful in-game test is claimed yet.*
 
 ---
 
@@ -192,7 +204,7 @@
 
 * **Kept** the Azeroth Questing Network protocol, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only UI/classification change.
 
-*Beta 13 still requires in-game validation. Verify the Zone Quests tab shows normal quests, the Daily / Weekly tab shows known blue daily/weekly quests with the correct badge, switching tabs updates the count and auto-point target, and no Lua errors occur. No successful Beta 13 in-game test is claimed yet.*
+*Beta 13 still requires in-game validation. Verify the Zone Quests tab shows normal quests, the Daily / Weekly tab shows known blue daily/weekly quests with the correct badge, switching tabs updates the count and auto-point target, and no Lua errors occur. No successful in-game test is claimed yet.*
 
 ---
 
@@ -240,7 +252,7 @@
 
 * **Updated** the Retail TOC interface metadata from `120100` to `120105` for the current 12.1.5 client and changed the addon version from `0.3.0-beta.9` to `0.3.0-beta.10` because Beta 9 had already been published and consumed before this live PARTY test found the blocker.
 
-* **Kept** the `AZQUEST` wire protocol, privacy model, peer deduplication, Companion handoff, and Azeroth Questing Server schema unchanged. No Companion, Website, or Azeroth Questing Server build is required for this fix.
+* **Kept** the `AZQUEST` wire protocol, privacy model, peer deduplication, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or Azeroth Questing Server build is required for this fix.
 
 *Beta 10 has not yet been tested inside World of Warcraft. After updating both test clients, verify a same-faction PARTY peer appears on both clients, repeat across realms, then test Horde/Alliance in a supported cross-faction party/raid/instance group and, separately if available, a cross-faction guild. Confirm Connected Players and `/aq peers` show one peer rather than duplicates and that no Lua errors occur. No successful Beta 10 in-game test is claimed yet.*
 
@@ -357,7 +369,7 @@
 
 * **Changed** the Beta number from `0.3.0-beta.1` to `0.3.0-beta.2` because Beta 1 had already been handed off for testing before the P2P diagnostic panel was added. Beta 2 is therefore the next testable addon build under the Beta test-build numbering rule.
 
-*This v0.3.0 Beta 2 P2P panel and periodic-presence behavior have not yet been tested in World of Warcraft. Test with two Retail clients that can see the same `AzerothQuesting` custom-channel scope: run `/aq network`, open `/aq peers` on both clients, allow up to 30 seconds or click **Announce / Refresh**, confirm each client appears with a version and updating last-seen value, generate quest evidence and confirm message counts rise, then disconnect one client and verify it becomes Idle after roughly 90 seconds. Reload the receiving UI and confirm the peer-name list is gone, then separately verify peer observations still reach the Companion/server as `source = "peer"` without sender identity. The outstanding v0.2.32 AQO1 synchronization and level-90 campaign-skip reminder checks also still require World of Warcraft testing. No successful in-game test is claimed.*
+*This v0.3.0 Beta 2 P2P panel and periodic-presence behavior has not yet been tested in World of Warcraft. Test with two Retail clients that can see the same `AzerothQuesting` custom-channel scope: run `/aq network`, open `/aq peers` on both clients, allow up to 30 seconds or click **Announce / Refresh**, confirm each client appears with a version and updating last-seen value, generate quest evidence and confirm message counts rise, then disconnect one client and verify it becomes Idle after roughly 90 seconds. Reload the receiving UI and confirm the peer-name list is gone, then separately verify peer observations still reach the Companion/server as `source = "peer"` without sender identity. The outstanding v0.2.32 AQO1 synchronization and level-90 campaign-skip reminder checks also still require World of Warcraft testing. No successful in-game test is claimed.*
 
 ---
 **VERSION 0.3.0 Beta 1 - September 8, 2026 - Development**
@@ -394,7 +406,7 @@
 
 * **Changed** the map-learning store to schema version 2 and the tab-separated map/quest export to `ZQGMAPQUESTDATA|3`, adding `classID` and `classFile` columns. Historical observations created before v0.2.31 remain labeled `UNKNOWN` rather than being incorrectly assigned to the class that first logs in after the update.
 
-* **Improved** Retail Midnight chat-lockdown handling by checking Blizzard's outgoing addon-message restriction APIs before network sends and queueing transient throttle/lockdown failures for retry. The in-game custom channel supplements the Companion/Service01 path; it is not a replacement for global server synchronization and is limited by WoW's custom-channel reach.
+* **Improved** Retail Midnight chat-lockdown handling by checking Blizzard's outgoing addon-message restriction APIs before network sends and queueing transient throttle/lockdown failures for retry. Map scans are still deduplicated and strong local quest evidence continues through the existing Companion queue.
 
 *This v0.2.31 network, class-learning, and Companion-queue update has not been tested in World of Warcraft. After updating, `/reload` and verify there are no Lua errors; open the Chat Channels pane and look for `AzerothQuesting` under custom channels; run `/aq network` and confirm `AZQUEST` is registered and the channel is joined; run `/aq sync` before and after interacting with quests to verify the queue count rises; use `/aq mapexport` and confirm new rows include the logged-in class ID/token. If a second Retail client with v0.2.31 is available on the same connected-realm custom-channel scope, verify `received`/`peers` can increase without protocol text appearing in normal chat. Also retest the still-outstanding v0.2.29 rename and v0.2.28 breadcrumb behavior. GitHub remains the only listed distribution platform because no downloadable Wago release has been published.*
 
@@ -456,7 +468,7 @@
 
 * **Added** Wago completion-state counters for phase-aware and general map/quest observations. The addon now records a `0` or `1` completion state alongside the quest's map/faction context, allowing the crowd dataset to retain the export's completion-support signal without putting character identity into metric names.
 
-* **Added** dashboard-visible `seen_quest_...` and `seen_mapquest_...` discovery switches for quest observations. Quest discovery mirrors share the existing 200-switch session ceiling but are limited to 150 of those slots so long questing sessions leave room for map, phase, and instance fingerprints; the complete evidence stream continues through counters even if the switch mirror reaches its cap.
+* **Added** dashboard-visible `seen_quest_...` and `seen_mapquest_...` discovery switches for quest observations. Quest discovery mirrors the existing 200-switch session ceiling but are limited to 150 of those slots so long questing sessions leave room for map, phase, and instance fingerprints; the complete evidence stream continues through counters even if the switch mirror reaches its cap.
 
 * **Improved** automatic accepted-quest coverage. Zone Quest Guide now scans quests actually present in the player's quest log for the current map and sends them as explicitly weak `accepted` evidence instead of dropping them from Wago entirely. It also emits a generic `seen` observation for every reported quest record, matching the structure of the local learning export more closely.
 
@@ -716,7 +728,7 @@
 
 * **Changed** `/zq contribute` and automatic contribution reminders to show `https://forms.gle/Gnqf8kN44kDZxMs86` as the current manual submission destination.
 
-*The Google Form link has been wired into the addon but the full in-game contribution flow has not yet been tested. Verify `/zq contribute` shows the correct form URL, **Select URL** highlights it for copying, **Open Export** still opens the phase report, and a test submission can be pasted into the form successfully. The Wago telemetry bridge from v0.2.7 is still awaiting a Wago project ID and in-game testing; Wago is not yet listed as an available distribution platform.*
+*The Google Form link has been wired into the addon but the full in-game contribution flow has not yet been tested. Verify `/zq contribute` shows the correct form URL, **Select URL** highlights it for copying, **Open Export** still opens the phase report correctly, and a test submission can be pasted into the form successfully. The Wago telemetry bridge from v0.2.7 is still awaiting a Wago project ID and in-game testing; Wago is not yet listed as an available distribution platform.*
 
 ---
 
@@ -778,7 +790,7 @@
 
 * **Improved** phase learning so a curated quest-based detector can provide the reliable phase signal needed to record other live quest evidence. This lets the account-wide Horde/Alliance learning database continue gathering useful data even when the player has not spoken to Zidormi during the current login session.
 
-* **Changed** quest-based timeline inference to stay conservative. Manual overrides and Zidormi remain stronger signals, and if curated live quest evidence points to conflicting phases at the same time, Zone QuestGuide does not guess from that quest evidence.
+* **Changed** quest-based timeline inference to stay conservative. Manual overrides and Zidormi remain stronger signals, and if curated live quest evidence points to conflicting phases at the same time, Zone Quest Guide does not guess from that quest evidence.
 
 *In-game testing is still required for the new automatic quest-based detector and Timeline line. In PRESENT Blasted Lands, reload with **Under Siege** or **Attack of the Iron Horde** active without first talking to Zidormi and verify the panel reports **PRESENT / Iron Horde (quest detected)**, `/zq phase` identifies the evidence quest, phase learning records under PRESENT, and the existing navigation UI remains positioned correctly.*
 
