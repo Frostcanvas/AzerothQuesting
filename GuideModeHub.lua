@@ -287,44 +287,19 @@ local function BestAutomaticQuestIndex(quests)
         end
     end
 
-    -- Ready turn-ins remain the strongest local action because finishing them
-    -- can unlock follow-up quests at the same hub.
+    -- Keep the original "pick up nearby work before leaving" behavior, but do
+    -- not let a quest hundreds of yards away steal the guide while the player
+    -- already has active objectives in the current area.
     if localTurninIndex then
         return localTurninIndex
     end
-
-    -- Do not abandon a nearby active objective merely because another quest can
-    -- be picked up somewhere else inside the broad local-action radius. Prefer
-    -- the current/nearest in-progress quest when its objective is at least as
-    -- close as the nearest available pickup. If WoW cannot expose a usable
-    -- objective distance, conservatively keep the active quest instead of
-    -- guessing that the pickup is better.
-    if current and QuestStatusKey(quests[current]) == "progress" then
-        local currentProgressDistance = DistanceFromPlayerYards(quests[current], mapID)
-        if not localAvailableIndex
-            or currentProgressDistance == nil
-            or localAvailableDistance == nil
-            or currentProgressDistance <= localAvailableDistance then
-            return current
-        end
-    end
-
-    if progressIndex then
-        if not localAvailableIndex
-            or progressDistance == nil
-            or localAvailableDistance == nil
-            or progressDistance <= localAvailableDistance then
-            return progressIndex
-        end
-    end
-
-    -- A pickup can still interrupt an objective when it is genuinely the closer
-    -- local action, preserving efficient quest-hub collection without sending
-    -- the player past an objective that is already right in front of them.
     if localAvailableIndex then
         return localAvailableIndex
     end
 
+    -- Once an in-progress quest has been chosen, keep it stable instead of
+    -- bouncing between objectives just because two map POIs trade places by a
+    -- few yards while the player moves.
     if current and QuestStatusKey(quests[current]) == "progress" then
         return current
     end
