@@ -1,1 +1,0 @@
-Temporary updater-publication trigger for addon 0.3.0-beta.18. Remove after the GitHub Pre-release is published.
