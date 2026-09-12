@@ -423,19 +423,21 @@ local function SetWaypointForQuest(quest)
 
     state.selected = quest
 
-    if quest.accepted and C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
-        C_SuperTrack.SetSuperTrackedQuestID(quest.id)
+    -- Keep Azeroth Questing navigation independent from Blizzard's quest/objective
+    -- super-tracking state. Troll Hunter test footage showed Blizzard's right-side
+    -- Objective Tracker disappearing during quest transitions and returning after
+    -- /reload. AQ can drive its own HUD without changing C_SuperTrack state.
+    if quest.accepted then
         return true
     end
 
+    -- Available quests can still receive a normal map pin for convenience, but
+    -- AQ deliberately does not make that pin Blizzard's super-tracked target.
     if quest.x and quest.y and state.mapID and C_Map and C_Map.SetUserWaypoint
         and UiMapPoint and UiMapPoint.CreateFromCoordinates then
         local point = UiMapPoint.CreateFromCoordinates(state.mapID, quest.x, quest.y)
-        C_Map.SetUserWaypoint(point)
-        if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
-            C_SuperTrack.SetSuperTrackedUserWaypoint(true)
-        end
-        return true
+        local ok = pcall(C_Map.SetUserWaypoint, point)
+        return ok
     end
 
     return false
