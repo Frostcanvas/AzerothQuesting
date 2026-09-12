@@ -1,0 +1,84 @@
+name: Prepare Addon Beta 20
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/prepare-addon-beta20.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: github.event.head_commit.message == 'Prepare addon beta20 release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Update version, guide modules, and changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          toc_path = Path('AzerothQuesting.toc')
+          toc = toc_path.read_text()
+          old_version = '## Version: 0.3.0-beta.19'
+          if old_version not in toc:
+              raise SystemExit('Expected Beta 19 TOC version was not found')
+          toc = toc.replace(old_version, '## Version: 0.3.0-beta.20', 1)
+
+          old_guide = 'PhaseGuidance.lua\nGuideMode.lua\nSlashDiagnostics.lua\n'
+          new_guide = 'PhaseGuidance.lua\nGuideModeHub.lua\nGuideHubHUD.lua\nSlashDiagnostics.lua\n'
+          if old_guide not in toc:
+              raise SystemExit('Expected GuideMode.lua TOC block was not found')
+          toc = toc.replace(old_guide, new_guide, 1)
+          toc_path.write_text(toc)
+
+          changelog_path = Path('CHANGELOG.md')
+          changelog = changelog_path.read_text()
+          if '**VERSION 0.3.0 Beta 20 -' in changelog:
+              raise SystemExit('Beta 20 changelog entry already exists')
+
+          header = '# Azeroth Questing Changelog\n'
+          if not changelog.startswith(header):
+              raise SystemExit('Unexpected changelog header')
+
+          entry = '''
+
+**VERSION 0.3.0 Beta 20 - September 12, 2026 - Available on GitHub Pre-release**
+
+* **Added** Zygor-style **quest hub steps**. When the current guide action is a pickup or a ready turn-in, Azeroth Questing can keep up to six safe nearby pickup/turn-in actions together instead of routing the player away after each individual quest.
+
+* **Improved** hub ordering so ready turn-ins are handled before nearby pickups, allowing the guide to finish completed work at the NPC/hub and then continue through available quests before moving on to normal quest objectives.
+
+* **Changed** the compact navigation HUD to use one hub-action count for its group status and progress. Pure pickup hubs can show **PICK UP N QUESTS**, pure turn-in hubs can show **TURN IN N QUESTS**, and mixed hubs can show **QUEST HUB - N ACTIONS**, with a separate **N of N hub actions** line and the next action when known.
+
+* **Fixed** the inconsistent pickup display observed during Beta 19 testing where the HUD could show one group total at the top while a different pickup total appeared underneath. Beta 20 clears the old pickup-only guide annotations and derives the visible hub count from the same active hub state.
+
+* **Protected** known breadcrumb, mutually exclusive, and blocked pickup relationships from unsafe batching. Turn-ins may share a hub with pickups, but two available quests with known lockout relationships remain separate guide steps.
+
+* **Kept** the main Azeroth Questing quest-list window optional and closable. Guide selection, the compact arrow, `/aq guide next`, and `/aq guide back` continue to work without requiring the large quest list to stay open.
+
+* **Kept** map research/AQM2, Azeroth Questing Network, Companion synchronization, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only guide-flow change.
+
+*Beta 20 still requires in-game validation. Re-test the Orc starting-area example from Beta 19 and verify an all-pickup hub uses one consistent total, a mixed turn-in/pickup hub completes the turn-in before the pickup, the arrow retargets after each action, the guide proceeds to quest objectives after the hub is finished, the main quest-list window may remain closed, and no Lua/taint errors occur. No successful Beta 20 in-game test is claimed yet.*
+
+---
+'''
+
+          changelog_path.write_text(header + entry + changelog[len(header):])
+          PY
+
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add AzerothQuesting.toc CHANGELOG.md
+          git commit -m 'Release addon v0.3.0-beta.20'
+          git push origin HEAD:main
