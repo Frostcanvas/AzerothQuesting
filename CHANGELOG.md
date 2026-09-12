@@ -1,6 +1,22 @@
 # Azeroth Questing Changelog
 
 
+**VERSION 0.3.0 Beta 24 - September 12, 2026 - Available on GitHub Pre-release**
+
+* **Fixed** Guide Mode treating every valid quest on a large UiMapID as equally local. In the live Durotar screenshot, the player was correctly on **Durotar (UiMapID 1)**, but Azeroth Questing automatically chose **Take it up with Tony** roughly **887 yd** away while the character already had active Durotar objectives nearby. This is a same-map routing problem, separate from the Beta 22 cross-map filtering bug.
+
+* **Improved** automatic guide selection with a **350-yard local action radius**. Nearby ready turn-ins and available pickups can still be handled before leaving a hub, but when no pickup/turn-in is local the guide now prefers an in-progress quest before sending the player across the same large map for a distant available quest.
+
+* **Improved** target stability and player control. An in-progress automatic target remains stable instead of bouncing between objectives as the player moves, while deliberate quest-row clicks and `/aq guide next` / `/aq guide back` remain authoritative until that quest disappears or the player changes maps.
+
+* **Improved** map transitions so automatic Guide Mode selection resets when the player actually changes UiMapID outside a taxi flight. Flight-path map crossings continue to preserve the existing taxi target-hold behavior until landing.
+
+* **Kept** the full Zone Quests list map-wide. Valid Durotar quests can still appear in the Durotar list even when they are far away; Beta 24 changes which quest Guide Mode automatically routes to rather than hiding legitimate same-map quests. The Beta 22 `startMapID` filter, Beta 23 arrow-orientation fix, Map ID display, hub batching, AQM2 research, Azeroth Questing Network, Companion synchronization, Website behavior, and Azeroth Questing Server schema are otherwise unchanged. No Companion, Website, or server build is required.
+
+*Beta 24 still requires in-game validation. After updating and `/reload`, reproduce the Durotar case near the supplied 50.64, 71.50 position with active objectives and no nearby pickup hub. Verify the guide does not choose the roughly 887-yard **Take it up with Tony** pickup over a usable in-progress quest, verify a genuinely nearby pickup or turn-in within about 350 yards can still take priority, verify manual Guide Next/Back or row selection stays selected, and confirm taxi flights, hub routing, the Beta 23 arrow direction, and Lua/taint behavior remain normal. No successful Beta 24 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 23 - September 12, 2026 - Available on GitHub Pre-release**
 
 * **Fixed** the compact navigation arrow rendering 180 degrees backward/upside down relative to the intended target. The issue was visible in the live Ratchet screenshot while Azeroth Questing was targeting **Club Foote** only a few yards from Gazlowe.
@@ -226,7 +242,7 @@
 
 * **Kept** the `AZQUEST` wire protocol, privacy model, peer deduplication, Companion handoff, and Azeroth Questing Server schema unchanged. No Companion, Website, or Azeroth Questing Server build is required for this fix.
 
-*Beta 10 has not yet been tested inside World of Warcraft. After updating both test clients, verify a same-faction PARTY peer appears on both clients, repeat across realms, then test Horde/Alliance in a supported cross-faction party. Confirm Connected Players and `/aq peers` show one peer rather than duplicates and that no Lua errors occur. No successful Beta 10 in-game test is claimed yet.*
+*Beta 10 has not yet been tested inside World of Warcraft. After updating both test clients, verify a same-faction PARTY peer appears on both clients, repeat across realms, then test Horde/Alliance in a supported cross-faction party/raid/instance group and, separately if available, a cross-faction guild. Confirm Connected Players and `/aq peers` show one peer rather than duplicates and that no Lua errors occur. No successful Beta 10 in-game test is claimed yet.*
 
 ---
 
@@ -898,7 +914,7 @@
 
 * **Fixed** the minimap/world-map destination not always changing cleanly when Zone Quest Guide switched from one available quest to another.
 
-  Zone Quest Guide uses Blizzard user waypoints for quests that have not been accepted yet. The addon could select a new quest internally while the previous user waypoint was still the active destination, which made the minimap appear to keep pointing at the old quest giver. Zone Quest Guide now tracks the waypoint it created, removes that old destination when the selected available quest changes, and creates a fresh waypoint for the new target. If the next target does not have usable coordinates, the old marker is removed instead of being left behind and pointing to the wrong place.
+  Zone Quest Guide uses a normal Blizzard user waypoint to mark the NPC for an available, unaccepted quest. The addon could select a new quest internally while the previous user waypoint was still the active destination, which made the minimap appear to keep pointing at the old quest giver. Zone Quest Guide now tracks the waypoint it created, removes that old destination when the selected available quest changes, and creates a fresh waypoint for the new target. If the next target does not have usable coordinates, the old marker is removed instead of being left behind and pointing to the wrong place.
 
 * **Added** optional **Auto Accept** quest handling. When enabled, Zone Quest Guide can select available quests from an NPC and accept them automatically when the quest-detail page opens.
 
