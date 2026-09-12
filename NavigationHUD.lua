@@ -62,11 +62,27 @@ background:SetTexture("Interface\\Buttons\\WHITE8X8")
 background:SetVertexColor(0, 0, 0, 0.10)
 
 local statusText = hud:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-statusText:SetPoint("TOP", hud, "TOP", 0, -2)
-statusText:SetWidth(340)
+statusText:SetPoint("TOP", hud, "TOP", -20, -2)
+statusText:SetWidth(260)
 statusText:SetJustifyH("CENTER")
 statusText:SetShadowColor(0, 0, 0, 1)
 statusText:SetShadowOffset(1, -1)
+
+local mapText = hud:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+mapText:SetPoint("TOPRIGHT", hud, "TOPRIGHT", -8, -3)
+mapText:SetWidth(80)
+mapText:SetJustifyH("RIGHT")
+mapText:SetShadowColor(0, 0, 0, 1)
+mapText:SetShadowOffset(1, -1)
+
+local function UpdateMapText()
+    local mapID = CurrentMapID()
+    if mapID then
+        mapText:SetText("Map ID " .. tostring(mapID))
+    else
+        mapText:SetText("Map ID ?")
+    end
+end
 
 -- Use Blizzard's minimap arrow texture as a filled, high-contrast navigation
 -- arrow. This is much closer to the compact guide-arrow presentation players
@@ -368,6 +384,7 @@ local function SelectHUDTarget(quest, mapID)
     selectedMapID = mapID or CurrentMapID()
     statusText:SetText(GetStatusText(quest))
     targetText:SetText(GetTargetLabel(quest))
+    UpdateMapText()
     UpdateDetailText()
     ApplyHUDVisibility()
 end
@@ -542,6 +559,8 @@ hud:SetScript("OnUpdate", function(_, elapsed)
     end
     wasOnTaxi = taxi
 
+    UpdateMapText()
+
     if not selectedQuest then
         return
     end
@@ -603,6 +622,7 @@ init:SetScript("OnEvent", function(self, _, addonName)
         )
     end
 
+    UpdateMapText()
     ApplyHUDVisibility()
     self:UnregisterEvent("ADDON_LOADED")
 end)
