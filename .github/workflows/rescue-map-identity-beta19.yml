@@ -1,0 +1,68 @@
+name: Rescue map identity Beta 19 preparation
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Recover Beta 19 source and metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+
+          helper = Path('.github/workflows/prepare-map-identity-beta19.yml')
+          source = helper.read_text(encoding='utf-8')
+
+          lua_start = "          cat > MapResearch.lua <<'LUA'\n"
+          lua_tail = source.split(lua_start, 1)[1]
+          lua_block = lua_tail.split('\n          LUA\n', 1)[0]
+          lua_lines = []
+          for line in lua_block.splitlines():
+              lua_lines.append(line[10:] if line.startswith('          ') else line)
+          Path('MapResearch.lua').write_text('\n'.join(lua_lines) + '\n', encoding='utf-8')
+
+          toc = Path('AzerothQuesting.toc')
+          toc_text = toc.read_text(encoding='utf-8')
+          old = '## Version: 0.3.0-beta.18'
+          assert old in toc_text, 'expected Beta 18 TOC version'
+          toc.write_text(toc_text.replace(old, '## Version: 0.3.0-beta.19', 1), encoding='utf-8')
+
+          entry_start = '          entry = """'
+          entry_tail = source.split(entry_start, 1)[1]
+          entry = entry_tail.split('\n"""\n', 1)[0] + '\n'
+          changelog = Path('CHANGELOG.md')
+          changelog_text = changelog.read_text(encoding='utf-8')
+          marker = '# Azeroth Questing Changelog\n\n'
+          assert changelog_text.startswith(marker), 'unexpected changelog header'
+          assert '**VERSION 0.3.0 Beta 19 -' not in changelog_text, 'Beta 19 changelog already exists'
+          changelog.write_text(marker + entry + changelog_text[len(marker):], encoding='utf-8')
+          PY
+
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+          find . -type f -name '*.lua' -not -path './.git/*' -print0 | xargs -0 -n1 luac -p
+          git diff --check
+
+      - name: Commit prepared Beta 19
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/prepare-map-identity-beta19.yml
+          rm -f .github/workflows/rescue-map-identity-beta19.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Prepare addon v0.3.0-beta.19 map identity research"
+          git push
