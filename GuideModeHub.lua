@@ -11,8 +11,11 @@ local lastWaypointKey
 local updateScheduled = false
 local forceWaypointOnUpdate = false
 local activeHub
+local manualQuestID
+local lastGuideMapID
 
 local HUB_RADIUS_YARDS = 120
+local LOCAL_ACTION_RADIUS_YARDS = 350
 local MAX_HUB_ACTIONS = 6
 
 local function GetDB()
@@ -32,6 +35,10 @@ local function CurrentMapID()
         end
     end
     return nil
+end
+
+local function IsOnTaxi()
+    return UnitOnTaxi and UnitOnTaxi("player") and true or false
 end
 
 local function QuestStatusKey(quest)
@@ -144,6 +151,49 @@ local function QuestWorldPoint(quest, mapID)
     return continent, x, y
 end
 
+local function PlayerWorldPoint(mapID)
+    if not mapID or not C_Map or not C_Map.GetPlayerMapPosition
+        or not C_Map.GetWorldPosFromMapPos then
+        return nil, nil, nil
+    end
+
+    local posOK, mapPos = pcall(C_Map.GetPlayerMapPosition, mapID, "player")
+    if not posOK or not mapPos then
+        return nil, nil, nil
+    end
+
+    local x, y = mapPos:GetXY()
+    if not x or not y or (x == 0 and y == 0) then
+        return nil, nil, nil
+    end
+
+    local worldOK, continent, worldPos = pcall(C_Map.GetWorldPosFromMapPos, mapID, mapPos)
+    if not worldOK or not worldPos then
+        return nil, nil, nil
+    end
+
+    local worldX, worldY = GetWorldXY(worldPos)
+    if not worldX or not worldY then
+        return nil, nil, nil
+    end
+    return continent, worldX, worldY
+end
+
+local function DistanceFromPlayerYards(quest, mapID)
+    local playerContinent, px, py = PlayerWorldPoint(mapID)
+    local questContinent, qx, qy = QuestWorldPoint(quest, mapID)
+    if not px or not py or not qx or not qy then
+        return nil
+    end
+    if playerContinent and questContinent and playerContinent ~= questContinent then
+        return nil
+    end
+
+    local dx = qx - px
+    local dy = qy - py
+    return math.sqrt((dx * dx) + (dy * dy))
+end
+
 local function DistanceBetweenQuestsYards(a, b, mapID)
     local continentA, ax, ay = QuestWorldPoint(a, mapID)
     local continentB, bx, by = QuestWorldPoint(b, mapID)
@@ -173,6 +223,97 @@ local function QuestsAreNear(a, b, mapID)
     end
 
     return false
+end
+
+local function BetterDistance(currentDistance, candidateDistance)
+    if candidateDistance == nil then
+        return currentDistance == nil
+    end
+    if currentDistance == nil then
+        return true
+    end
+    return candidateDistance < currentDistance
+end
+
+local function BestAutomaticQuestIndex(quests)
+    if #quests == 0 then
+        return nil
+    end
+
+    local mapID = CurrentMapID()
+    local current = FindQuestIndex(quests, currentQuestID)
+
+    -- A deliberate row click or guide next/back remains authoritative until
+    -- that quest disappears or the player changes maps.
+    if manualQuestID and currentQuestID == manualQuestID and current then
+        return current
+    end
+
+    local localTurninIndex, localTurninDistance
+    local localAvailableIndex, localAvailableDistance
+    local progressIndex, progressDistance
+    local turninIndex, turninDistance
+    local availableIndex, availableDistance
+
+    for index, quest in ipairs(quests) do
+        local status = QuestStatusKey(quest)
+        local distance = DistanceFromPlayerYards(quest, mapID)
+
+        if status == "turnin" then
+            if distance and distance <= LOCAL_ACTION_RADIUS_YARDS
+                and BetterDistance(localTurninDistance, distance) then
+                localTurninIndex = index
+                localTurninDistance = distance
+            end
+            if not turninIndex or BetterDistance(turninDistance, distance) then
+                turninIndex = index
+                turninDistance = distance
+            end
+        elseif status == "available" then
+            if distance and distance <= LOCAL_ACTION_RADIUS_YARDS
+                and BetterDistance(localAvailableDistance, distance) then
+                localAvailableIndex = index
+                localAvailableDistance = distance
+            end
+            if not availableIndex or BetterDistance(availableDistance, distance) then
+                availableIndex = index
+                availableDistance = distance
+            end
+        elseif status == "progress" then
+            if not progressIndex or BetterDistance(progressDistance, distance) then
+                progressIndex = index
+                progressDistance = distance
+            end
+        end
+    end
+
+    -- Keep the original "pick up nearby work before leaving" behavior, but do
+    -- not let a quest hundreds of yards away steal the guide while the player
+    -- already has active objectives in the current area.
+    if localTurninIndex then
+        return localTurninIndex
+    end
+    if localAvailableIndex then
+        return localAvailableIndex
+    end
+
+    -- Once an in-progress quest has been chosen, keep it stable instead of
+    -- bouncing between objectives just because two map POIs trade places by a
+    -- few yards while the player moves.
+    if current and QuestStatusKey(quests[current]) == "progress" then
+        return current
+    end
+    if progressIndex then
+        return progressIndex
+    end
+    if turninIndex then
+        return turninIndex
+    end
+    if availableIndex then
+        return availableIndex
+    end
+
+    return current or 1
 end
 
 local function ListContains(list, value)
@@ -427,6 +568,22 @@ local function UpdateGuide(forceWaypoint)
 
     ZQG.GuideHubActive = true
 
+    local mapID = CurrentMapID()
+    if not IsOnTaxi() then
+        if lastGuideMapID and mapID and mapID ~= lastGuideMapID then
+            activeHub = nil
+            manualQuestID = nil
+            currentQuestID = nil
+            currentIndex = 1
+            lastWaypointKey = nil
+        end
+        if mapID then
+            lastGuideMapID = mapID
+        end
+    elseif not lastGuideMapID and mapID then
+        lastGuideMapID = mapID
+    end
+
     local quests = GetGuideQuests()
     ClearGuideAnnotations(quests)
 
@@ -435,7 +592,12 @@ local function UpdateGuide(forceWaypoint)
         currentIndex = 1
         lastWaypointKey = nil
         activeHub = nil
+        manualQuestID = nil
         return
+    end
+
+    if manualQuestID and not FindQuestIndex(quests, manualQuestID) then
+        manualQuestID = nil
     end
 
     local quest
@@ -449,13 +611,14 @@ local function UpdateGuide(forceWaypoint)
             currentQuestID = hubFinishedTarget.id
         end
 
-        local index = FindQuestIndex(quests, currentQuestID)
+        local index = BestAutomaticQuestIndex(quests)
         if not index then
-            index = math.max(1, math.min(currentIndex or 1, #quests))
-            SelectQuestAt(index, quests, true)
-        else
-            currentIndex = index
+            return
         end
+        if currentQuestID ~= quests[index].id then
+            lastWaypointKey = nil
+        end
+        SelectQuestAt(index, quests, false)
 
         quest = quests[currentIndex]
         if not quest then
@@ -518,6 +681,7 @@ local function HookQuestRows()
             row:HookScript("OnClick", function(self)
                 if self.quest then
                     activeHub = nil
+                    manualQuestID = self.quest.id
                     currentQuestID = self.quest.id
                     local quests = GetGuideQuests()
                     currentIndex = FindQuestIndex(quests, currentQuestID) or 1
@@ -573,8 +737,14 @@ events:SetScript("OnEvent", function(_, event, ...)
 
     if event == "QUEST_ACCEPTED" then
         MarkHubActionComplete(arg2 or arg1)
+        if manualQuestID == (arg2 or arg1) then
+            manualQuestID = nil
+        end
     elseif event == "QUEST_TURNED_IN" then
         MarkHubActionComplete(arg1)
+        if manualQuestID == arg1 then
+            manualQuestID = nil
+        end
     end
 
     ScheduleGuideUpdate(event == "QUEST_ACCEPTED" or event == "QUEST_TURNED_IN")
@@ -591,6 +761,7 @@ function ZQG.HideGuideMode()
     GetDB().guideModeEnabled = false
     ZQG.GuideHubActive = false
     activeHub = nil
+    manualQuestID = nil
     ClearGuideAnnotations(GetGuideQuests())
 end
 
@@ -604,6 +775,7 @@ function ZQG.ToggleGuideMode()
     else
         ZQG.GuideHubActive = false
         activeHub = nil
+        manualQuestID = nil
         ClearGuideAnnotations(GetGuideQuests())
     end
 end
@@ -615,6 +787,7 @@ function ZQG.GuideNext()
     end
     activeHub = nil
     SelectQuestAt((FindQuestIndex(quests, currentQuestID) or currentIndex or 1) + 1, quests, true)
+    manualQuestID = currentQuestID
     UpdateGuide(true)
 end
 
@@ -625,6 +798,7 @@ function ZQG.GuideBack()
     end
     activeHub = nil
     SelectQuestAt((FindQuestIndex(quests, currentQuestID) or currentIndex or 1) - 1, quests, true)
+    manualQuestID = currentQuestID
     UpdateGuide(true)
 end
 
