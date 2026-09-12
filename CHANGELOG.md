@@ -1,5 +1,26 @@
 # Azeroth Questing Changelog
 
+
+**VERSION 0.3.0 Beta 20 - September 12, 2026 - Available on GitHub Pre-release**
+
+* **Added** Zygor-style **quest hub steps**. When the current guide action is a pickup or a ready turn-in, Azeroth Questing can keep up to six safe nearby pickup/turn-in actions together instead of routing the player away after each individual quest.
+
+* **Improved** hub ordering so ready turn-ins are handled before nearby pickups, allowing the guide to finish completed work at the NPC/hub and then continue through available quests before moving on to normal quest objectives.
+
+* **Changed** the compact navigation HUD to use one hub-action count for its group status and progress. Pure pickup hubs can show **PICK UP N QUESTS**, pure turn-in hubs can show **TURN IN N QUESTS**, and mixed hubs can show **QUEST HUB - N ACTIONS**, with a separate **N of N hub actions** line and the next action when known.
+
+* **Fixed** the inconsistent pickup display observed during Beta 19 testing where the HUD could show one group total at the top while a different pickup total appeared underneath. Beta 20 clears the old pickup-only guide annotations and derives the visible hub count from the same active hub state.
+
+* **Protected** known breadcrumb, mutually exclusive, and blocked pickup relationships from unsafe batching. Turn-ins may share a hub with pickups, but two available quests with known lockout relationships remain separate guide steps.
+
+* **Kept** the main Azeroth Questing quest-list window optional and closable. Guide selection, the compact arrow, `/aq guide next`, and `/aq guide back` continue to work without requiring the large quest list to stay open.
+
+* **Kept** map research/AQM2, Azeroth Questing Network, Companion synchronization, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only guide-flow change.
+
+*Beta 20 still requires in-game validation. Re-test the Orc starting-area example from Beta 19 and verify an all-pickup hub uses one consistent total, a mixed turn-in/pickup hub completes the turn-in before the pickup, the arrow retargets after each action, the guide proceeds to quest objectives after the hub is finished, the main quest-list window may remain closed, and no Lua/taint errors occur. No successful Beta 20 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 19 - September 12, 2026 - Available on GitHub Pre-release**
 
 * **Added** richer Blizzard-backed map identity evidence for phased and scenario content. Map research can now capture parent-map name, map-art ID, scenario name and current scenario step, difficulty name, player map position, and the previous UiMapID seen during the current play session in addition to the existing UiMapID/instance/phase context.
