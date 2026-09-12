@@ -122,6 +122,18 @@ local function DrawArrow(angle)
 end
 
 local function GetStatusText(quest)
+    local batchTotal = quest and tonumber(quest.guidePickupBatchTotal) or nil
+    local batchRemaining = quest and tonumber(quest.guidePickupBatchRemaining) or nil
+    if batchTotal and batchTotal > 1 then
+        if batchRemaining and batchRemaining < batchTotal then
+            if batchRemaining == 1 then
+                return "|cffffff66PICK UP 1 MORE QUEST|r"
+            end
+            return string.format("|cffffff66PICK UP %d MORE QUESTS|r", batchRemaining)
+        end
+        return string.format("|cffffff66PICK UP %d QUESTS|r", batchTotal)
+    end
+
     if ZQG.GetQuestStatusText then
         return ZQG.GetQuestStatusText(quest)
     end
@@ -310,6 +322,20 @@ local function UpdateDetailText()
     local distance = GetDistanceYards(selectedQuest, selectedMapID)
     local distanceText = FormatDistance(distance)
     local questName = selectedQuest.name or ("Quest " .. tostring(selectedQuest.id or ""))
+
+    local batchTotal = tonumber(selectedQuest.guidePickupBatchTotal)
+    if batchTotal and batchTotal > 1 then
+        local batchIndex = tonumber(selectedQuest.guidePickupBatchIndex) or 1
+        local pickupText = string.format("%d of %d pickups", batchIndex, batchTotal)
+        local nextName = selectedQuest.guidePickupNextName
+        local nextText = nextName and (" • Next: " .. nextName) or ""
+        if distanceText then
+            detailText:SetText(distanceText .. "  |cffb8b8b8• " .. pickupText .. nextText .. "|r")
+        else
+            detailText:SetText("|cffb8b8b8" .. pickupText .. nextText .. "|r")
+        end
+        return
+    end
 
     if distanceText then
         detailText:SetText(distanceText .. "  |cffb8b8b8• " .. questName .. "|r")

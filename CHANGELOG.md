@@ -1,5 +1,21 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 17 - September 12, 2026 - Available on GitHub Pre-release**
+
+* **Added** Zygor-style pickup batches to Guide Mode. When the current guide step is an available quest and other compatible available quests are in the same nearby quest hub, Azeroth Questing groups up to four of them into one pickup sequence instead of immediately leaving after the first acceptance.
+
+* **Changed** the compact navigation HUD to show **PICK UP N QUESTS** for a pickup batch, point to the first quest giver, then immediately retarget the next remaining pickup after each quest is accepted. Once the batch is complete, Guide Mode returns to the accepted quest flow and routes toward objectives/turn-ins as before.
+
+* **Added** pickup progress context under the arrow, such as **1 of 2 pickups** and the next quest name when another pickup remains, while keeping the full Azeroth Questing quest-list window optional and closable.
+
+* **Protected** breadcrumb and mutually exclusive quest behavior by refusing to combine nearby quests into one pickup batch when known `skippedBy`, `exclusiveWith`, or `blockedBy` relationships indicate they should remain separate steps.
+
+* **Kept** the Beta 16 lightweight Guide Mode approach: closing the main quest-list window does not disable guide selection or the compact navigation HUD. Quest-frequency tabs, research data, P2P networking, Companion handoff, Website behavior, and Azeroth Questing Server schema are unchanged, so no Companion, Website, or server build is required.
+
+*Beta 17 still requires in-game validation. Test a hub with at least two nearby available compatible quests: confirm the HUD says **PICK UP 2 QUESTS**, points to the first pickup, changes to the second pickup immediately after accepting the first, then changes to an objective/turn-in step after both are accepted. Repeat with the main quest-list window closed and verify the guide continues without Lua/taint errors. No successful Beta 17 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 16 - September 12, 2026 - Available on GitHub Pre-release**
 
 * **Changed** Guide Mode to stop opening the large separate **Azeroth Questing Guide** window added in Beta 14. The guide now runs as a lightweight controller behind the compact navigation HUD instead of adding another boxed tracker to the game screen.
