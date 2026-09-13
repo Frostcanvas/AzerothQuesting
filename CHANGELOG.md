@@ -1,6 +1,20 @@
 # Azeroth Questing Changelog
 
 
+**VERSION 0.3.0 Beta 28 - September 13, 2026 - Available on GitHub Pre-release**
+
+* **Improved** the compact Azeroth Questing navigation HUD to look more like the lightweight floating guide-arrow presentation shown beside Zygor in the user's test video. The existing Blizzard `MinimapArrow` asset is enlarged with a stronger shadow, the large opaque panel is removed in favor of a minimal text backing, and a small **AQ** label identifies which arrow belongs to Azeroth Questing when Zygor is also enabled.
+
+* **Added** current-zone quest progress in the form **X / Y known zone quests done**. The count is shown on the compact HUD and in the main Azeroth Questing panel and updates after quest-log, quest-line, gossip, turn-in, and zone changes.
+
+* **Changed** the progress denominator to use Azeroth Questing's current faction/map knowledge: locally learned map quests, curated supplemental quests, quests currently reported by Blizzard on the map, and current available quest lines. Known daily/weekly repeatables are excluded. The wording intentionally says **known** because Retail does not expose one complete addon API for every quest shipped in a zone, so the total can grow as Azeroth Questing learns more quest data and is not claimed to be Blizzard achievement completion.
+
+* **Kept** Beta 27's arrow-direction calculation, Beta 26's Blizzard Objective Tracker isolation, Beta 24 local-routing behavior, Map ID display, Guide Mode/hub batching, research/network behavior, Companion synchronization, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required.
+
+*Beta 28 requires in-game validation. With Zygor enabled, verify the Azeroth Questing arrow is easy to distinguish by its AQ label, remains movable, and points straight up when facing the destination while Zygor's separate arrow continues independently. Verify the zone-progress count appears in both AQ surfaces, increases after turning in a known normal zone quest, follows real UiMapID changes, excludes a known Daily/Weekly quest when its frequency is available, and does not overlap the quest tabs. Continue checking that Blizzard's right-side Objective Tracker remains visible and that no Lua/taint errors occur. No successful Beta 28 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 27 - September 13, 2026 - Available on GitHub Pre-release**
 
 * **Fixed** the compact navigation arrow still pointing approximately 180 degrees away from the actual quest destination during live gameplay. In the September 13 test video, while moving toward the **Unfortunate Measures** turn-in, the quest marker was visibly ahead-left and the distance dropped from roughly **215 yd** to **187 yd**, while Azeroth Questing's green arrow pointed down-right instead of toward the destination.
@@ -339,7 +353,7 @@
 
 * **Changed** the addon version from `0.3.0-beta.5` to `0.3.0-beta.6` because Beta 5 had already been published/consumed before the Settings connection list was requested.
 
-*This v0.3.0 Beta 6 Settings connection list has not yet been tested in World of Warcraft. Verify **Settings > AddOns > Azeroth Questing** opens without Lua errors, two clients on the same reachable Azeroth Questing channel appear under Connected Players with sensible version/last-seen values, a disconnected client disappears after roughly 90 seconds, `/aq peers` still shows the full session diagnostic, and `/reload` clears the session-only name list. No successful in-game test is claimed yet.*
+*This v0.3.0 Beta 6 Settings connection list has not yet been tested inside World of Warcraft. Verify **Settings > AddOns > Azeroth Questing** opens without Lua errors, two clients on the same reachable Azeroth Questing channel appear under Connected Players with sensible version/last-seen values, a disconnected client disappears after roughly 90 seconds, `/aq peers` still shows the full session diagnostic, and `/reload` clears the session-only name list. No successful in-game test is claimed yet.*
 
 ---
 **VERSION 0.3.0 Beta 5 - September 10, 2026 - Available on GitHub Pre-release**
@@ -395,7 +409,7 @@
 
 * **Changed** the Beta number from `0.3.0-beta.1` to `0.3.0-beta.2` because Beta 1 had already been handed off for testing before the P2P diagnostic panel was added. Beta 2 is therefore the next testable addon build under the Beta test-build numbering rule.
 
-*This v0.3.0 Beta 2 P2P panel and periodic-presence behavior has not yet been tested in World of Warcraft. Test with two Retail clients that can see the same `AzerothQuesting` custom-channel scope: run `/aq network`, open `/aq peers` on both clients, allow up to 30 seconds or click **Announce / Refresh**, confirm each client appears with a version and updating last-seen value, generate quest evidence and confirm message counts rise, then disconnect one client and verify it becomes Idle after roughly 90 seconds. Reload the receiving UI and confirm the peer-name list is gone, then separately verify peer observations still reach the Companion/server as `source = "peer"` without sender identity. The outstanding v0.2.32 AQO1 synchronization and level-90 campaign-skip reminder checks also still require World of Warcraft testing. No successful in-game test is claimed.*
+*This v0.3.0 Beta 2 P2P panel and periodic-presence behavior has not yet been tested inside World of Warcraft. Test with two Retail clients that can see the same `AzerothQuesting` custom-channel scope: run `/aq network`, open `/aq peers` on both clients, allow up to 30 seconds or click **Announce / Refresh**, confirm each client appears with a version and updating last-seen value, generate quest evidence and confirm message counts rise, then disconnect one client and verify it becomes Idle after roughly 90 seconds. Reload the receiving UI and confirm the peer-name list is gone, then separately verify peer observations still reach the Companion/server as `source = "peer"` without sender identity. The outstanding v0.2.32 AQO1 synchronization and level-90 campaign-skip reminder checks also still require World of Warcraft testing. No successful in-game test is claimed.*
 
 ---
 **VERSION 0.3.0 Beta 1 - September 8, 2026 - Development**
@@ -503,7 +517,7 @@
 
 * **Changed** `available` evidence to remain in Wago as a useful map/API hint instead of being treated as proof that the quest exists in the current timeline. The evidence label is preserved so later analysis can require `offered`, `active`, or `turnedIn` when confirming that a quest genuinely exists in a specific world state.
 
-*The v0.2.26 telemetry expansion has not yet been tested in World of Warcraft. After updating, `/reload`, run `/zq check`, interact with an NPC that offers a quest, accept a quest, and if practical turn one in. Verify the phase/map-quest session counts rise, verify `discoveries` rises while under the switch cap, and after the Wago App uploads check Analytics -> Switches for new `seen_quest_...` or `seen_mapquest_...` entries. Also re-enter the live-tested Heroic Battle for Stromgarde if convenient and confirm the richer instance fingerprint does not exceed Wago's metric-name limit or suppress `instancevisit`. Wago's Counters dashboard is still unavailable for direct inspection, so counter receipt cannot yet be verified there. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+*The v0.2.26 telemetry expansion has not yet been tested in World of Warcraft. After updating, `/reload`, run `/zq check`, interact with an NPC that offers a quest, accept a quest, and if practical turn one in. Verify the phase/map-quest session counts rise, verify `discoveries` rises while under the switch cap, and after the Wago App uploads check Analytics -> Switches for new `seen_quest_...` or `seen_mapquest_...` entries. Also re-enter the live-tested Heroic Battle for Stromgarde if convenient and confirm the richer instance fingerprint does not exceed Wago's metric-name limit or suppress `instancevisit`. Wago's Counters dashboard is still unavailable for direct inspection, so counter receipt cannot yet be verified there. This release has not been tested successfully in WoW yet, and Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
 
 ---
 
@@ -722,6 +736,20 @@
 ---
 
 **VERSION 0.2.10 - August 16, 2026 - Available on GitHub**
+
+* **Fixed** the initial Wago Analytics integration to follow Wago's documented shim-based setup instead of talking directly to the optional global analytics provider. Zone Quest Guide now bundles Wago's official `WagoAnalytics` shim and registers project `EGPeM3N1` through `LibStub("WagoAnalytics"):Register(...)` when the addon loads.
+
+* **Added** bundled `LibStub` support so the Wago shim can load safely even when the player does not have another addon that already provides LibStub. The official Wago shim and its MIT license are included under `libs/WagoAnalytics/`.
+
+* **Improved** `/zq wago` status reporting so it distinguishes between the configured/shim-ready state and the real `WagoAnalytics` addon actually being loaded. The command no longer claims that the player's Wago App data-sharing setting can be verified from WoW Lua; it explicitly notes that uploading still depends on the Wago App setting.
+
+* **Changed** Wago registration timing to happen during addon loading, matching Wago's guidance that registration should occur at the beginning of the game session rather than waiting for a later gameplay event.
+
+*In-game testing is still required. After Analytics is activated for the Wago project and the Wago App has Analytics data sharing enabled, verify `/zq wago` reports project `EGPeM3N1` with the WagoAnalytics addon loaded, then generate a strong phased quest observation and confirm it reaches the Wago Analytics development dashboard. Zone Quest Guide still has no published Wago release, so Wago is not yet listed as an available distribution platform.*
+
+---
+
+**VERSION 0.2.9 - August 16, 2026 - Available on GitHub**
 
 * **Added** the assigned Wago project ID (`EGPeM3N1`) to `ZoneQuestGuide.toc` as `X-Wago-ID`, allowing the existing Wago telemetry bridge to register observations against the correct Zone Quest Guide project.
 
