@@ -1,6 +1,18 @@
 # Azeroth Questing Changelog
 
 
+**VERSION 0.3.0 Beta 27 - September 13, 2026 - Available on GitHub Pre-release**
+
+* **Fixed** the compact navigation arrow still pointing approximately 180 degrees away from the actual quest destination during live gameplay. In the September 13 test video, while moving toward the **Unfortunate Measures** turn-in, the quest marker was visibly ahead-left and the distance dropped from roughly **215 yd** to **187 yd**, while Azeroth Questing's green arrow pointed down-right instead of toward the destination.
+
+* **Changed** `NavigationHUD.lua` to remove the extra 180-degree `MinimapArrow` base-orientation offset introduced in Beta 23. The arrow now rotates with the negated relative heading only, so facing directly toward the quest should render the arrow straight up while preserving left/right turn direction.
+
+* **Kept** Beta 26's Blizzard Objective Tracker isolation, Beta 24 local-routing behavior, current Map ID display, Guide Mode/hub batching, AQM2 research, Azeroth Questing Network, Companion synchronization, Website behavior, and Azeroth Questing Server schema otherwise unchanged. No Companion, Website, or server build is required.
+
+*Beta 27 requires in-game validation. After updating, face directly toward a visible quest destination and verify the green Azeroth Questing arrow points straight up; turn left/right and verify the arrow rotates toward the destination rather than away from it. Also continue the Beta 26 check that Blizzard's right-side Objective Tracker remains visible through quest pickup/progress/turn-in transitions, and confirm no Lua or taint errors occur. The video proves the Beta 26-era arrow orientation was wrong; no successful Beta 27 in-game test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 26 - September 12, 2026 - Available on GitHub Pre-release**
 
 * **Fixed** the remaining Azeroth Questing guide paths that were still changing Blizzard's `C_SuperTrack` state after Beta 25. In the Troll Hunter retest, Blizzard's right-side Objective Tracker still disappeared and required `/reload`, proving Beta 25 did not fully isolate Azeroth Questing from Blizzard tracking state.
@@ -99,7 +111,7 @@
 
 * **Kept** map research/AQM2, Azeroth Questing Network, Companion synchronization, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only guide-flow change.
 
-*Beta 20 still requires in-game validation. Re-test the Orc starting-area example from Beta 19 and verify an all-pickup hub uses one consistent total, a mixed turn-in/pickup hub completes the turn-in before the pickup, the arrow retargets after each action, the guide proceeds to quest objectives after the hub is finished, the main quest-list window may remain closed, and no Lua/taint errors occur. No successful Beta 20 in-game test is claimed yet.*
+*Beta 20 still requires in-game validation. Re-test the Orc starting-area example from Beta 19 and verify an all-pickup hub uses one consistent total, a mixed turn-in/pickup hub completes the turn-in before the pickup, the arrow retargets after each action, the guide proceeds to quest objectives after the hub is finished, the main quest-list window may remain closed, and no Lua/taint errors occur. No successful in-game test is claimed yet.*
 
 ---
 
@@ -117,7 +129,7 @@
 
 * **Compatibility:** the original `AQM1` handoff remains available. Uploading the new `AQM2` evidence requires **Azeroth Questing Companion 0.1.9-beta.12 or newer** and **Azeroth Questing Server 0.2.12 / schema 5 or newer**. No Website build is required; the LAN Research Map IDs tab is provided by the Azeroth Questing Server.
 
-*Beta 19 still requires in-game validation. Verify `/aq map` does not cause Lua/taint errors, scenario/map-art/parent/coordinate fields appear only when WoW safely exposes them, previous-UiMapID transitions are sensible, and Battle for Darkshore / Battle for Stromgarde observations gain enough evidence to move from UNKNOWN to LIKELY or CONFIRMED without hard-coded assumptions. End-to-end AQM2 synchronization also remains to be verified with Companion Beta 12 and Server 0.2.12. No successful Beta 19 in-game test is claimed yet.*
+*Beta 19 still requires in-game validation. Verify `/aq map` does not cause Lua/taint errors, scenario/map-art/parent/coordinate fields appear only when WoW safely exposes them, previous-UiMapID transitions are sensible, and Battle for Darkshore / Battle for Stromgarde observations gain enough evidence to move from UNKNOWN to LIKELY or CONFIRMED without hard-coded assumptions. End-to-end AQM2 synchronization also remains to be verified with Companion Beta 12 and Server 0.2.12. No successful Beta 19 in-game or live-server test is claimed yet.*
 
 ---
 
@@ -135,7 +147,7 @@
 
 * **Compatibility:** automatic server upload of `AQM1` observations requires **Azeroth Questing Companion 0.1.9-beta.11 or newer** and **Azeroth Questing Server 0.2.9 or newer**. No Website build is required for this addon change; the LAN Azeroth Questing Research dashboard is provided by the server.
 
-*Beta 18 still requires in-game validation. Verify `/aq map` reports the expected UiMapID, normal zone changes do not cause Lua/taint errors, and multiple Battle for Darkshore / Battle for Stromgarde variants are recorded as their actual UiMapIDs. End-to-end Companion/server synchronization also remains to be verified after Server 0.2.9 is deployed. No successful Beta 18 in-game or live-server test is claimed yet.*
+*Beta 18 still requires in-game validation. Verify `/aq map` reports the expected UiMapID, normal zone changes do not cause Lua/taint errors, and multiple Battle for Darkshore / Battle for Stromgarde variants are recorded as their actual UiMapIDs. End-to-end Companion/server synchronization also remains to be verified after Server 0.2.9 is deployed. No successful in-game or live-server test is claimed yet.*
 
 ---
 
@@ -167,7 +179,7 @@
 
 * **Kept** quest-frequency tabs, quest research, P2P networking, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only Guide Mode UI change.
 
-*Beta 16 still requires in-game validation. Confirm no large Azeroth Questing Guide window appears after login/reload, the compact navigation HUD still follows the selected quest and objective, `/aq guide next` and `/aq guide back` change the guide target, quest turn-in advances normally, and no Lua/taint errors occur. No successful Beta 16 in-game test is claimed yet.*
+*Beta 16 still requires in-game validation. Confirm no large Azeroth Questing Guide window appears after login/reload, the compact navigation HUD still follows the selected quest and objective, `/aq guide next` and `/aq guide back` change the guide target, quest turn-in advances normally, and no Lua/taint errors occur. No successful in-game test is claimed yet.*
 
 ---
 **VERSION 0.3.0 Beta 15 - September 11, 2026 - Available on GitHub Pre-release**
@@ -202,7 +214,7 @@
 
 * **Kept** the Azeroth Questing Network protocol, research payloads, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only guide-view change.
 
-*Beta 14 still requires in-game validation. Verify Guide Mode opens without Lua errors, follows an available quest through accept/objectives/turn-in, automatically advances after turn-in, Back/Next and the Zone vs Daily/Weekly switch work, the Quest List button remains usable, and the existing navigation HUD points to the selected guide step. No successful Beta 14 in-game test is claimed yet.*
+*Beta 14 still requires in-game validation. Verify Guide Mode opens without Lua errors, follows an available quest through accept/objectives/turn-in, automatically advances after turn-in, Back/Next and the Zone vs Daily/Weekly switch work, the Quest List button remains usable, and the existing navigation HUD points to the selected guide step. No successful in-game test is claimed yet.*
 
 ---
 
@@ -286,7 +298,7 @@
 
 * **Changed** the addon version from `0.3.0-beta.8` to `0.3.0-beta.9` because Beta 8 had already been published/consumed before cross-faction shared-context transport was approved.
 
-*This v0.3.0 Beta 9 multi-transport behavior has not yet been tested inside World of Warcraft. Test an Alliance and Horde client running Beta 9 in a supported cross-faction party/raid/instance group and, separately if available, a cross-faction guild. Verify `/aq peers` and **Settings > AddOns > Azeroth Questing** can see the opposite-faction peer, a quest-evidence event is accepted once rather than once per overlapping transport, the existing same-faction custom-channel path still works, and leaving the shared WoW context removes that direct cross-faction path. Azeroth Questing still cannot directly discover arbitrary opposite-faction players who share no WoW-supported group/guild context; global aggregation continues through Azeroth Questing Companion and Azeroth Questing Server. No successful Beta 9 in-game or cross-faction test is claimed yet.*
+*This v0.3.0 Beta 9 multi-transport behavior has not yet been tested inside World of Warcraft. Test an Alliance and Horde client running Beta 9 in a supported cross-faction party/raid/instance group and, separately if available, a cross-faction guild. Verify `/aq peers` and **Settings > AddOns > Azeroth Questing** can see the opposite-faction peer, a quest-evidence event is accepted once rather than once per overlapping transport, the existing same-faction custom-channel path still works, and leaving the shared WoW context removes that direct cross-faction path. Azeroth Questing still cannot directly discover arbitrary opposite-faction players who share no WoW-supported group/guild context; global aggregation continues through Azeroth Questing Companion and Azeroth Questing Server. No successful in-game or cross-faction test is claimed yet.*
 
 ---
 
@@ -327,7 +339,7 @@
 
 * **Changed** the addon version from `0.3.0-beta.5` to `0.3.0-beta.6` because Beta 5 had already been published/consumed before the Settings connection list was requested.
 
-*This v0.3.0 Beta 6 Settings connection list has not yet been tested inside World of Warcraft. Verify **Settings > AddOns > Azeroth Questing** opens without Lua errors, two clients on the same reachable Azeroth Questing channel appear under Connected Players with sensible version/last-seen values, a disconnected client disappears after roughly 90 seconds, `/aq peers` still shows the full session diagnostic, and `/reload` clears the session-only name list. No successful in-game test is claimed yet.*
+*This v0.3.0 Beta 6 Settings connection list has not yet been tested in World of Warcraft. Verify **Settings > AddOns > Azeroth Questing** opens without Lua errors, two clients on the same reachable Azeroth Questing channel appear under Connected Players with sensible version/last-seen values, a disconnected client disappears after roughly 90 seconds, `/aq peers` still shows the full session diagnostic, and `/reload` clears the session-only name list. No successful in-game test is claimed yet.*
 
 ---
 **VERSION 0.3.0 Beta 5 - September 10, 2026 - Available on GitHub Pre-release**
@@ -425,6 +437,7 @@
 *This v0.2.31 network, class-learning, and Companion-queue update has not been tested in World of Warcraft. After updating, `/reload` and verify there are no Lua errors; open the Chat Channels pane and look for `AzerothQuesting` under custom channels; run `/aq network` and confirm `AZQUEST` is registered and the channel is joined; run `/aq sync` before and after interacting with quests to verify the queue count rises; use `/aq mapexport` and confirm new rows include the logged-in class ID/token. If a second Retail client with v0.2.31 is available on the same connected-realm custom-channel scope, verify `received`/`peers` can increase without protocol text appearing in normal chat. Also retest the still-outstanding v0.2.29 rename and v0.2.28 breadcrumb behavior. GitHub remains the only listed distribution platform because no downloadable Wago release has been published.*
 
 ---
+
 **VERSION 0.2.30 - September 8, 2026 - Available on GitHub**
 
 * **Improved** GitHub packaging with a stable player-facing `AzerothQuesting.zip` download that contains a top-level `AzerothQuesting/` addon folder, so players do not have to rename the `AzerothQuesting-main` folder created by GitHub's built-in source ZIP.
@@ -490,7 +503,7 @@
 
 * **Changed** `available` evidence to remain in Wago as a useful map/API hint instead of being treated as proof that the quest exists in the current timeline. The evidence label is preserved so later analysis can require `offered`, `active`, or `turnedIn` when confirming that a quest genuinely exists in a specific world state.
 
-*The v0.2.26 telemetry expansion has not yet been tested in World of Warcraft. After updating, `/reload`, run `/zq check`, interact with an NPC that offers a quest, accept a quest, and if practical turn one in. Verify the phase/map-quest session counts rise, verify `discoveries` rises while under the switch cap, and after the Wago App uploads check Analytics -> Switches for new `seen_quest_...` or `seen_mapquest_...` entries. Also re-enter the live-tested Heroic Battle for Stromgarde if convenient and confirm the richer instance fingerprint does not exceed Wago's metric-name limit or suppress `instancevisit`. Wago's Counters dashboard is still unavailable for direct inspection, so counter receipt cannot yet be verified there. This release has not been tested successfully in WoW yet, and Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
+*The v0.2.26 telemetry expansion has not yet been tested in World of Warcraft. After updating, `/reload`, run `/zq check`, interact with an NPC that offers a quest, accept a quest, and if practical turn one in. Verify the phase/map-quest session counts rise, verify `discoveries` rises while under the switch cap, and after the Wago App uploads check Analytics -> Switches for new `seen_quest_...` or `seen_mapquest_...` entries. Also re-enter the live-tested Heroic Battle for Stromgarde if convenient and confirm the richer instance fingerprint does not exceed Wago's metric-name limit or suppress `instancevisit`. Wago's Counters dashboard is still unavailable for direct inspection, so counter receipt cannot yet be verified there. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
 
 ---
 
@@ -710,20 +723,6 @@
 
 **VERSION 0.2.10 - August 16, 2026 - Available on GitHub**
 
-* **Fixed** the initial Wago Analytics integration to follow Wago's documented shim-based setup instead of talking directly to the optional global analytics provider. Zone Quest Guide now bundles Wago's official `WagoAnalytics` shim and registers project `EGPeM3N1` through `LibStub("WagoAnalytics"):Register(...)` when the addon loads.
-
-* **Added** bundled `LibStub` support so the Wago shim can load safely even when the player does not have another addon that already provides LibStub. The official Wago shim and its MIT license are included under `libs/WagoAnalytics/`.
-
-* **Improved** `/zq wago` status reporting so it distinguishes between the configured/shim-ready state and the real `WagoAnalytics` addon actually being loaded. The command no longer claims that the player's Wago App data-sharing setting can be verified from WoW Lua; it explicitly notes that uploading still depends on the Wago App setting.
-
-* **Changed** Wago registration timing to happen during addon loading, matching Wago's guidance that registration should occur at the beginning of the game session rather than waiting for a later gameplay event.
-
-*In-game testing is still required. After Analytics is activated for the Wago project and the Wago App has Analytics data sharing enabled, verify `/zq wago` reports project `EGPeM3N1` with the WagoAnalytics addon loaded, then generate a strong phased quest observation and confirm it reaches the Wago Analytics development dashboard. Zone Quest Guide still has no published Wago release, so Wago is not yet listed as an available distribution platform.*
-
----
-
-**VERSION 0.2.9 - August 16, 2026 - Available on GitHub**
-
 * **Added** the assigned Wago project ID (`EGPeM3N1`) to `ZoneQuestGuide.toc` as `X-Wago-ID`, allowing the existing Wago telemetry bridge to register observations against the correct Zone Quest Guide project.
 
 * **Changed** Wago setup from a placeholder/no-project state to a real configured project. `/zq wago` can now distinguish between a configured project whose Wago Analytics client is available and a configured project where the Wago App/Analytics data sharing is still unavailable.
@@ -878,17 +877,15 @@
 
 **VERSION 0.1.10 - August 16, 2026 - Available on GitHub**
 
-* **Added** automatic Zidormi phase detection for historical-version zones. When the player talks to Zidormi, Zone Quest Guide now reads the gossip option she is offering and uses that as a strong clue for which version of the zone the character is currently standing in.
+* **Added** automatic Zidormi phase detection from live NPC/gossip state.
 
-* **Improved** Blasted Lands phase handling based on the in-game Zidormi wording observed during testing. If Zidormi offers **"Take me back to the present."**, Zone Quest Guide treats the current version as **PAST**. If Zidormi instead offers to show the zone **before** an invasion/event or otherwise travel to the past, the character is currently in the **PRESENT** version.
+* **Improved** Blasted Lands detection based on Zidormi's offered destination: if Zidormi offers a return to the present, the current world is treated as PAST; if she offers a historical destination, the current world is treated as PRESENT.
 
-  Previously, the phase framework could refresh when WoW reported a phase-related change, but it still needed a zone-specific detector or manual override to know which phase was actually active. Zidormi's own gossip option gives a much stronger clue because the destination she offers is the opposite of the current timeline.
+* **Improved** timeline switching after a Zidormi interaction by remembering the offered destination and updating the session timeline when WoW reports the corresponding phase transition.
 
-* **Improved** phase switching after a Zidormi interaction. Zone Quest Guide remembers the phase Zidormi is offering to switch to for a short period. If WoW then reports a phase transition, the addon updates its session's detected phase to that destination. Merely closing Zidormi's gossip window does not change the detected phase.
+* **Added** a **(Zidormi)** source label to the phase badge so players can tell when timeline state came from the NPC conversation.
 
-* **Added** a **(Zidormi)** source label to the phase badge so the player can tell when the current **PAST** or **PRESENT** phase was identified from a Zidormi conversation rather than a manual override.
-
-*In-game testing is still required to confirm the addon receives the expected Zidormi gossip text through WoW's gossip API and that the phase badge flips correctly after selecting the phase-switch option. The visible Blasted Lands Zidormi wording was confirmed in-game, but the new addon detection code has not yet been verified in-game.*
+*In-game testing is still required for this Zidormi detection behavior.*
 
 ---
 
@@ -896,15 +893,13 @@
 
 * **Added** time-phase awareness for zones that can exist in more than one historical version.
 
-  Zone Quest Guide now treats historical phases as a quest filter rather than another quest category. Live quests supplied by WoW continue to come from the character's active world state, while supplemental database records can be tagged with a phase such as `past` or `present`. Phase-tagged supplemental quests that do not match the selected phase are excluded so the addon does not direct the player toward an NPC that only exists in another version of the zone.
+* **Added** per-zone phase overrides with `/zq phase`, `/zq phase auto`, `/zq phase past`, and `/zq phase present`.
 
-* **Added** per-zone phase overrides with `/zq phase`, `/zq phase auto`, `/zq phase past`, and `/zq phase present`. These overrides are intended as a fallback for phased zones where the client does not expose enough information for Zone Quest Guide to identify the historical version reliably on its own.
+* **Improved** phase-sensitive refreshing across zone changes, quest-log changes, gossip closing, and WoW phase-change events.
 
-* **Improved** phase-sensitive refreshing. Zone Quest Guide now treats zone changes, quest-log changes, gossip closing, and WoW phase-change events as signals to rebuild phase-sensitive supplemental quest data and refresh the guide.
+* **Changed** unknown phase handling to be conservative: phase-tagged supplemental quests are hidden when the active historical state cannot be identified safely.
 
-* **Changed** unknown phase handling to be conservative. If a supplemental quest is explicitly tagged for a historical phase and Zone Quest Guide cannot determine which phase is active, that static quest is hidden instead of risking a waypoint into the wrong version of the zone.
-
-*In-game testing is still required in zones with historical/time phases. Zone-specific automatic phase detectors and phase-tagged quest data still need to be added as those zones are mapped.*
+*In-game testing is still required in zones with historical/time phases.*
 
 ---
 
@@ -912,27 +907,21 @@
 
 * **Added** a separate **DAILY QUESTS** section so repeatable daily quests no longer appear mixed together with normal one-time zone progression quests.
 
-  WoW exposes daily information through several quest sources, including current-map quest data, available quest-line information, the quest log, and NPC gossip quest data. Zone Quest Guide now combines those signals to identify daily quests and place them in their own section. This should make it much clearer which quests advance permanent zone completion and which quests are repeatable daily content.
+* **Changed** automatic quest priority so normal **ZONE QUESTS** remain ahead of **DAILY QUESTS**.
 
-* **Changed** automatic quest priority so normal **ZONE QUESTS** remain ahead of **DAILY QUESTS**. Within each section, the existing order is preserved: **AVAILABLE** first, then **TURN IN**, then **IN PROGRESS**. This prevents a nearby repeatable daily from pulling the navigation target away from unfinished one-time zone quests.
+* **Improved** the main window with visible **ZONE QUESTS** and **DAILY QUESTS** section headings.
 
-* **Improved** the main Zone Quest Guide window with visible **ZONE QUESTS** and **DAILY QUESTS** section headings and additional vertical space for the separated layout.
-
-* **Improved** daily completion handling by relying on WoW's reset-aware completion state. A daily completed during the current reset can disappear from the unfinished list and become eligible to appear again after a later daily reset when WoW reports it as available again.
-
-*In-game testing is still required to confirm daily quests are classified into the correct section across accepted, available, completed, and NPC-gossip states, and that normal zone quests remain the preferred automatic navigation target.*
+*In-game testing is still required for daily quest classification and priority.*
 
 ---
 
 **VERSION 0.1.7 - August 16, 2026 - Available on GitHub**
 
-* **Added** a new **TURN IN** quest status. Accepted quests whose objectives are complete now change from **IN PROGRESS** to **TURN IN**, making it much easier to see which quests are ready to hand back to an NPC.
+* **Added** a new **TURN IN** quest status for accepted quests whose objectives are complete.
 
-* **Improved** quest-status priority. **AVAILABLE** quests remain first as requested, completed **TURN IN** quests are shown next, and normal **IN PROGRESS** quests follow after them. If there are no available quests, automatic quest selection can therefore fall back to a completed quest before choosing one that still has unfinished objectives.
+* **Improved** quest-status priority: **AVAILABLE**, then **TURN IN**, then normal **IN PROGRESS** quests.
 
-* **Improved** status consistency across the quest-priority and location-hint systems so a completed quest does not get changed back to **IN PROGRESS** when another part of the Zone Quest Guide window refreshes.
-
-*In-game testing is still required to confirm quests switch to **TURN IN** immediately when their objectives become complete and return to the normal list flow after being handed in.*
+*In-game testing is still required for turn-in status behavior.*
 
 ---
 
@@ -940,85 +929,61 @@
 
 * **Fixed** the minimap/world-map destination not always changing cleanly when Zone Quest Guide switched from one available quest to another.
 
-  Zone Quest Guide uses a normal Blizzard user waypoint to mark the NPC for an available, unaccepted quest. The addon could select a new quest internally while the previous user waypoint was still the active destination, which made the minimap appear to keep pointing at the old quest giver. Zone Quest Guide now tracks the waypoint it created, removes that old destination when the selected available quest changes, and creates a fresh waypoint for the new target. If the next target does not have usable coordinates, the old marker is removed instead of being left behind and pointing to the wrong place.
+* **Added** optional **Auto Accept** and **Auto Turn-in** quest handling with safe reward-choice behavior.
 
-* **Added** optional **Auto Accept** quest handling. When enabled, Zone Quest Guide can select available quests from an NPC and accept them automatically when the quest-detail page opens.
+* **Added** `/zq options`, `/zq autoaccept`, and `/zq autoturnin` controls.
 
-* **Added** optional **Auto Turn-in** handling for completed quests. When enabled, Zone Quest Guide can select completed quests from an NPC, advance the completion screen, and claim the reward automatically when there is no meaningful reward choice.
-
-* **Added** a Zone Quest Guide options window with separate checkboxes for **Auto accept quests** and **Auto turn in completed quests**. Both options are disabled by default.
-
-* **Added** `/zq options`, `/zq autoaccept`, and `/zq autoturnin`. `/zq autocomplete` is also accepted as an alias for auto turn-in.
-
-* **Improved** quest automation safety. Holding **Shift** while interacting with an NPC temporarily bypasses automatic acceptance and turn-in without changing the saved settings. Quests with multiple reward choices are left open so the player can choose the reward manually.
-
-*In-game testing is still required for waypoint switching, automatic quest acceptance, automatic turn-in, reward-choice handling, and special quest interactions in this release.*
+*In-game testing is still required for waypoint switching and quest automation.*
 
 ---
 
 **VERSION 0.1.5 - August 16, 2026 - Available on GitHub**
 
-* **Added** location and elevation hints for quests where WoW's flat 2D map can make an NPC look like it is on the same level as nearby quests even when it is actually above, below, inside a cave, or on another floor.
+* **Added** location/elevation hints for quests whose NPC is above, below, inside a cave, or on another floor.
 
-* **Improved** **Horn of the Traitor** navigation at Freewind Post. The quest is now marked **[UPPER LEVEL]** in the Zone Quest Guide list and on the current target, and hovering the quest explains that Montarr is on top of Freewind Post and that the player should follow the path uphill.
+* **Improved** **Horn of the Traitor** navigation at Freewind Post with an **[UPPER LEVEL]** hint.
 
-  The normal WoW map waypoint only gives Zone Quest Guide a 2D map position, so it cannot reliably communicate terrain height by itself. This could make the Horn of the Traitor marker look like it belonged with the quest givers on the lower level even though Montarr is farther up the mountain. The new location-hint framework lets the addon add player-facing terrain guidance for known vertical or otherwise confusing locations without changing Blizzard's waypoint behavior.
-
-* **Added** supplemental Horde and Alliance data for **Horn of the Traitor** at Freewind Post, including the quest-giver coordinates and prerequisite from the preceding Free Freewind Post quest.
-
-*In-game testing is still required to confirm the new location badge and tooltip remain visible correctly while quest priority and auto-pointing refresh the list.*
+*In-game testing is still required for location hints.*
 
 ---
 
 **VERSION 0.1.4 - August 16, 2026 - Available on GitHub**
 
-* **Changed** quest priority so **AVAILABLE** quests are shown before **IN PROGRESS** quests in the Zone Quest Guide window.
+* **Changed** quest priority so **AVAILABLE** quests are shown before **IN PROGRESS** quests.
 
-* **Improved** automatic navigation. Previously, accepted quests were sorted first, so the addon could keep pointing at an in-progress quest even when there was another quest nearby that the player had not picked up yet. Zone Quest Guide now prefers the nearest **AVAILABLE** quest and only falls back to an **IN PROGRESS** quest when there are no available quests in the displayed list.
+* **Improved** automatic navigation to prefer the nearest available quest before falling back to an in-progress quest.
 
-* **Improved** the auto-track label to better describe the new behavior: the addon now focuses on the next available quest rather than simply the nearest unfinished quest.
-
-*In-game testing is still required to confirm available-quest priority behaves correctly when several available and in-progress quests are present at the same time.*
+*In-game testing is still required for the updated priority behavior.*
 
 ---
 
 **VERSION 0.1.3 - August 16, 2026 - Available on GitHub**
 
-* **Fixed** the temporary quest-starter map waypoint remaining on the world map after the player accepts that quest.
+* **Fixed** the temporary quest-starter waypoint remaining after accepting the quest.
 
-  Zone Quest Guide uses a normal Blizzard user waypoint to mark the NPC for an available, unaccepted quest. Once that quest is accepted, Blizzard's normal quest tracking becomes the better source for objectives, but the old starter waypoint could remain behind and make the map look like the player still needed to return to the quest giver. Zone Quest Guide now listens for the quest acceptance event and removes the matching temporary waypoint when the accepted quest is the one the addon had pointed to. When the client exposes the waypoint coordinates, the addon also compares them before clearing so it is less likely to remove an unrelated waypoint the player placed manually.
+* **Improved** the transition from **AVAILABLE** to **IN PROGRESS** by clearing the starter marker while preserving normal accepted-quest tracking.
 
-* **Improved** the transition from **AVAILABLE** to **IN PROGRESS**. After accepting a quest, the quest-starter marker should disappear while the quest remains available to Blizzard's normal quest super-tracking.
-
-*In-game testing is still required to confirm the temporary waypoint is removed immediately after quest acceptance without affecting unrelated player waypoints.*
+*In-game testing is still required for waypoint cleanup.*
 
 ---
 
 **VERSION 0.1.2 - August 16, 2026 - Available on GitHub**
 
-* **Fixed** the navigation arrow rendering as a small square or missing-glyph box on some WoW clients. The first version used Unicode arrow characters, but the game font being used by the addon does not reliably contain those glyphs. Zone Quest Guide now keeps the directional calculation but draws the result with a normal WoW texture instead, so the navigation indicator should display consistently.
+* **Fixed** the navigation arrow rendering as a missing-glyph square on some clients.
 
-* **Added** a minimap button for faster access to Zone Quest Guide. Left-clicking the button shows or hides the main window, right-clicking refreshes the current zone's quest list, and Shift-dragging moves the button around the minimap. Its position is saved between sessions.
+* **Added** a minimap button and `/zq minimap` control.
 
-* **Added** `/zq minimap` to hide or show the minimap button.
-
-* **Added** an addon-list icon so Zone Quest Guide uses a normal map icon instead of WoW's red question-mark placeholder in the AddOn List.
-
-*In-game testing is still required for the new arrow texture, minimap positioning, and minimap controls in this release.*
+*In-game testing is still required for the arrow texture and minimap controls.*
 
 ---
 
 **VERSION 0.1.1 - August 16, 2026 - Available on GitHub**
 
-* **Fixed** an issue where available quests could be missing from the Zone Quest Guide window even though the character could accept them from an NPC.
+* **Fixed** available quests being missing from the zone window by requesting quest-line data before reading it and refreshing on `QUESTLINE_UPDATE`.
 
-  Zone Quest Guide was reading `C_QuestLine.GetAvailableQuestLines()` immediately, but it was not first asking WoW to download the current map's quest-line information. Blizzard provides `C_QuestLine.RequestQuestLinesForMap()` for that purpose and reports updated information through `QUESTLINE_UPDATE`. The addon now requests the current zone's quest-line data and refreshes when WoW reports that updated information is available. Players should see more available quest starters without having to manually refresh the addon.
+* **Added** live quest-offer detection from NPC gossip/quest-detail state.
 
-* **Added** live quest-offer detection. When you open an NPC's gossip window or quest-detail page, Zone Quest Guide now records quests WoW says are currently available and adds them to the current session's zone list. This helps with older quests that Blizzard does not expose through the normal map quest-line API.
-
-* **Added** initial supplemental quest-chain coverage for both Horde and Alliance in Thousand Needles, including **Go Blow that Horn**, **Deliver the Goods**, and **Free Freewind Post**, with faction and prerequisite checks so the addon does not point the wrong faction toward those quests or show later quests before their prerequisites are complete.
-
-* **Improved** `/zq refresh` so it also forces a new quest-line data request for the current map.
+* **Added** initial supplemental Thousand Needles chain coverage.
 
 *In-game testing is still required for this release.*
 
