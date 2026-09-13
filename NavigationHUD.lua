@@ -130,9 +130,11 @@ local function DrawArrow(angle)
         return
     end
 
-    -- Blizzard's MinimapArrow texture points opposite our zero-angle guide
-    -- convention, so rotate it by 180 degrees while preserving left/right turn.
-    local textureAngle = pi - angle
+    -- Live video validation showed the previous 180-degree base offset made
+    -- the filled MinimapArrow point exactly away from the guide destination.
+    -- Negating the relative angle preserves left/right turn direction while
+    -- leaving zero-angle (facing the target) pointing straight up.
+    local textureAngle = -angle
     arrowShadow:SetRotation(textureAngle)
     arrowTexture:SetRotation(textureAngle)
     SetArrowVisible(true)
