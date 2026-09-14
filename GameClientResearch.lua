@@ -4,13 +4,14 @@ local function Print(message)
     DEFAULT_CHAT_FRAME:AddMessage("|cff66ccffAzeroth Questing:|r " .. tostring(message))
 end
 
-local KNOWN_CLIENTS = {
-    { constant = "WOW_PROJECT_MAINLINE", key = "retail", label = "Retail" },
-    { constant = "WOW_PROJECT_CLASSIC", key = "classic-era", label = "Classic Era" },
-    { constant = "WOW_PROJECT_BURNING_CRUSADE_CLASSIC", key = "burning-crusade-classic", label = "Burning Crusade Classic" },
-    { constant = "WOW_PROJECT_WRATH_CLASSIC", key = "wrath-classic", label = "Wrath Classic" },
-    { constant = "WOW_PROJECT_CATACLYSM_CLASSIC", key = "cataclysm-classic", label = "Cataclysm Classic" },
-    { constant = "WOW_PROJECT_MISTS_CLASSIC", key = "mists-classic", label = "Mists Classic" },
+local KNOWN_PRODUCTS = {
+    { constant = "WOW_PROJECT_MAINLINE", label = "Retail" },
+    { constant = "WOW_PROJECT_CLASSIC", label = "Classic Era" },
+    { constant = "WOW_PROJECT_WOWLABS", label = "WoW Labs" },
+    { constant = "WOW_PROJECT_BURNING_CRUSADE_CLASSIC", label = "Burning Crusade Classic" },
+    { constant = "WOW_PROJECT_WRATH_CLASSIC", label = "Wrath Classic" },
+    { constant = "WOW_PROJECT_CATACLYSM_CLASSIC", label = "Cataclysm Classic" },
+    { constant = "WOW_PROJECT_MISTS_CLASSIC", label = "Mists of Pandaria Classic" },
 }
 
 local function SafeNumber(value)
@@ -33,27 +34,23 @@ local function SafeString(value)
     return type(value) == "string" and value or nil
 end
 
-local function GetClientContext()
+local function GetProductContext()
     local projectID = SafeNumber(WOW_PROJECT_ID) or 0
-    local key
     local label
 
-    for _, client in ipairs(KNOWN_CLIENTS) do
-        local constantValue = SafeNumber(_G[client.constant])
+    for _, product in ipairs(KNOWN_PRODUCTS) do
+        local constantValue = SafeNumber(_G[product.constant])
         if constantValue and constantValue == projectID then
-            key = client.key
-            label = client.label
+            label = product.label
             break
         end
     end
 
-    if not key then
+    if not label then
         if projectID > 0 then
-            key = "project-" .. tostring(projectID)
-            label = "Project " .. tostring(projectID)
+            label = "Unknown Product " .. tostring(projectID)
         else
-            key = "unknown"
-            label = "Unknown WoW Client"
+            label = "Unknown WoW Product"
         end
     end
 
@@ -70,7 +67,6 @@ local function GetClientContext()
     end
 
     return {
-        key = key,
         label = label,
         projectID = projectID,
         gameVersion = gameVersion,
@@ -79,16 +75,25 @@ local function GetClientContext()
     }
 end
 
-local function PrefixFor(context)
-    return string.format("gc-%s-p%d-", tostring(context.key), tonumber(context.projectID) or 0)
+local function ProductPrefix(context)
+    return string.format("wp%d-", tonumber(context.projectID) or 0)
 end
 
 local function TaggedKey(key, context)
     key = tostring(key or "")
+
+    -- Beta 29 used a readable gc-<name>-p<ID>- prefix. Preserve any queued or
+    -- already-uploaded Beta 29 key exactly so it keeps its deduplication identity.
     if key:match("^gc%-[a-z0-9%-]+%-p%d+%-") then
         return key
     end
-    return PrefixFor(context) .. key
+
+    -- Beta 30 and later use WOW_PROJECT_ID itself as the durable partition key.
+    if key:match("^wp%d+%-") then
+        return key
+    end
+
+    return ProductPrefix(context) .. key
 end
 
 local function ReplaceWireKey(wire, key)
@@ -108,8 +113,8 @@ local function TagObservation(observation, context)
     end
 
     local newKey = TaggedKey(observation.key, context)
-    observation.gameClient = context.key
     observation.wowProjectID = context.projectID
+    observation.gameClient = context.label
     observation.interfaceVersion = context.interfaceVersion
     observation.gameVersion = context.gameVersion
     observation.buildNumber = context.buildNumber
@@ -135,7 +140,7 @@ local function TagQueuedResearch()
         return 0
     end
 
-    local context = GetClientContext()
+    local context = GetProductContext()
     local changed = 0
     for _, observation in ipairs(observations) do
         if TagObservation(observation, context) then
@@ -189,11 +194,10 @@ local previousSlashHandler = SlashCmdList.ZONEQUESTGUIDE
 SlashCmdList.ZONEQUESTGUIDE = function(msg)
     local command = (msg or ""):lower():match("^%s*(.-)%s*$")
     if command == "client" or command == "product" or command == "project" then
-        local context = GetClientContext()
+        local context = GetProductContext()
         Print(string.format(
-            "WoW client: %s | key=%s | WOW_PROJECT_ID=%d | version=%s | build=%s | interface=%d",
+            "WoW product: %s | WOW_PROJECT_ID=%d | version=%s | build=%s | interface=%d",
             context.label,
-            context.key,
             context.projectID,
             tostring(context.gameVersion or "unknown"),
             tostring(context.buildNumber or "unknown"),
@@ -207,7 +211,9 @@ SlashCmdList.ZONEQUESTGUIDE = function(msg)
     end
 end
 
-ZQG.GetGameClientContext = GetClientContext
+ZQG.GetGameClientContext = GetProductContext
+ZQG.GetWoWProductContext = GetProductContext
 ZQG.TagQueuedResearchByGameClient = TagQueuedResearch
+ZQG.TagQueuedResearchByProduct = TagQueuedResearch
 
 TagQueuedResearch()
