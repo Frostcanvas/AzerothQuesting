@@ -1,5 +1,18 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 29 - September 13, 2026 - Available on GitHub Pre-release**
+
+* **Added** game-client partition tagging to anonymous quest and map research. New queued observations prefix their existing stable observation key with the active WoW product identity and `WOW_PROJECT_ID` while preserving the existing `AQO1`/`AQO2` and `AQM1`/`AQM2` wire formats, so Retail, Classic-family clients, and future WoW products cannot silently collapse into one research dataset.
+
+* **Added** `/aq client` (also `/aq product` and `/aq project`) to report the active WoW client label/key, `WOW_PROJECT_ID`, game version/build, and interface version for client-identification testing. Known Blizzard project constants receive readable keys; an unrecognized future client is safely labeled `project-<id>` instead of being assumed to be Retail.
+
+* **Changed** queued research records to retain the game-client tag without adding character, realm, account, or peer-sender identity. Older untagged observations remain compatible and are treated by Azeroth Questing Server as legacy Retail research.
+
+* **Compatibility:** Azeroth Questing Companion `0.1.9-beta.12` remains compatible because the AQO/AQM wire schemas are unchanged and it already forwards the observation key. Azeroth Questing Server `0.2.16` adds database/client-tab partitioning for the new key prefix. No Companion or public Website build is required.
+
+*Beta 29 requires in-game validation. On Retail, run `/aq client`, verify the reported product ID/build/interface, generate quest and map observations, save or `/reload`, and confirm Companion synchronization still works. After Azeroth Questing Server `0.2.16` is deployed, verify the Retail research tab receives the new data. When testing other WoW clients, confirm their observations appear under separate client tabs and never increase Retail quest/map counts. No successful Beta 29 in-game or cross-client server test is claimed yet.*
+
+---
 
 **VERSION 0.3.0 Beta 28 - September 13, 2026 - Available on GitHub Pre-release**
 
@@ -244,7 +257,7 @@
 
 * **Kept** the Azeroth Questing Network protocol, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon-only UI/classification change.
 
-*Beta 13 still requires in-game validation. Verify the Zone Quests tab shows normal quests, the Daily / Weekly tab shows known blue daily/weekly quests with the correct badge, switching tabs updates the count and auto-point target, and no Lua errors occur. No successful Beta 13 in-game test is claimed yet.*
+*Beta 13 still requires in-game validation. Verify the Zone Quests tab shows normal quests, the Daily / Weekly tab shows known blue daily/weekly quests with the correct badge, switching tabs updates the count and auto-point target, and no Lua errors occur. No successful in-game test is claimed yet.*
 
 ---
 
@@ -272,7 +285,7 @@
 
 * **Kept** the `AZQUEST` protocol, privacy model, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or server build is required for this addon compatibility correction.
 
-* **Verified in World of Warcraft** that Beta 11 loads again on live Retail and that the **GUILD** transport works bidirectionally across both faction and realm boundaries. After both clients were fully logged out and logged back in to clear the session-only peer list, the Alliance client started at **Connected now: 0 players**; when `Moralni-Bonechewer` came online in the same guild while the characters were not grouped, it updated to **1 player** and showed Moralni on `0.3.0-beta.11`. The reverse Horde-side test also started at **0 players** and then updated to **1 player**, showing `Frostlendian-BleedingHollow` after that Alliance character came online. This confirms fresh, bidirectional **cross-faction + cross-realm GUILD peer discovery** rather than a leftover PARTY/session-cache result. Remaining transport validation still includes the reverse cross-faction PARTY direction and final custom-channel/deduplication checks before Stable approval.*
+* **Verified in World of Warcraft** that Beta 11 loads again on live Retail and that the **GUILD** transport works bidirectionally across both faction and realm boundaries. After both clients were fully logged out and logged back in to clear the session-only peer list, the Alliance client started at **Connected now: 0 players**; when `Moralni-Bonechewer` came online in the same guild while the characters were not grouped, it updated to **1 player** and showed Moralni on `0.3.0-beta.11`. The reverse Horde-side test also started at **0 players** and then updated to **1 player**, showing `Frostlendian-BleedingHollow` after that Alliance character came online. This confirms fresh, bidirectional **cross-faction + cross-realm GUILD peer discovery** rather than a leftover PARTY/session-cache result. No claim is made here about transports or directions not separately tested above.
 
 * **Verified in World of Warcraft** that the **PARTY** transport also works across both faction and realm boundaries in the tested Alliance-to-Horde direction. With the Alliance client grouped with `Moralni-Bonechewer` on a different realm and running `0.3.0-beta.11`, **Connected Players** showed **1 player** with a fresh Last Seen value. This confirms live cross-faction + cross-realm PARTY peer discovery from the Alliance client. The reverse Horde-to-Alliance direction has not yet been separately evidenced, so bidirectional cross-faction PARTY is not claimed yet.
 
@@ -292,7 +305,7 @@
 
 * **Updated** the Retail TOC interface metadata from `120100` to `120105` for the current 12.1.5 client and changed the addon version from `0.3.0-beta.9` to `0.3.0-beta.10` because Beta 9 had already been published and consumed before this live PARTY test found the blocker.
 
-* **Kept** the `AZQUEST` wire protocol, privacy model, peer deduplication, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or Azeroth Questing Server build is required for this fix.
+* **Kept** the `AZQUEST` protocol, privacy model, peer deduplication, Companion handoff, Website behavior, and Azeroth Questing Server schema unchanged. No Companion, Website, or Azeroth Questing Server build is required for this fix.
 
 *Beta 10 has not yet been tested inside World of Warcraft. After updating both test clients, verify a same-faction PARTY peer appears on both clients, repeat across realms, then test Horde/Alliance in a supported cross-faction party/raid/instance group and, separately if available, a cross-faction guild. Confirm Connected Players and `/aq peers` show one peer rather than duplicates and that no Lua errors occur. No successful Beta 10 in-game test is claimed yet.*
 
@@ -366,7 +379,7 @@
 
 * **Kept** character identity private to the local PC. The `AQC1` payload does not contain character name or realm; Azeroth Questing Companion derives those values from WoW's local per-character SavedVariables folder. The completed-quest handoff is not sent over Azeroth Questing Network or Wago Analytics and is not placed in the anonymous research synchronization queue.
 
-* **Changed** the addon version from `0.3.0-beta.4` to `0.3.0-beta.5` because Beta 4 had already been published/consumed before the Companion handoff was requested. The new handoff requires Azeroth Questing Companion `0.1.9-beta.6` or newer to import it.
+* **Changed** the addon version from `0.3.0-beta.4` to `0.3.0-beta.5` because Beta 4 had already been published/consumed before this addon-to-Companion handoff was added. The new handoff requires Azeroth Questing Companion `0.1.9-beta.6` or newer to import it.
 
 *This v0.3.0 Beta 5 handoff has not yet been tested inside World of Warcraft. After both compatible Betas are installed, keep the Companion running, log into a toon, run `/aq completed client`, then `/reload` or log out. Verify the Companion reports the toon and completed-quest count, its local completed-quest TSV contains the expected rows, and merely importing the completed-quest snapshot does not increase Pending Observations or upload character identity to Azeroth Questing Server. No successful in-game, Windows runtime, or live handoff test is claimed yet.*
 
@@ -421,6 +434,7 @@
 *This initial v0.3.0 Beta 1 build changed version/release metadata only and did not add new gameplay behavior by itself. No new in-game test result is claimed. The outstanding v0.2.32 AQO1 synchronization and level-90 campaign-skip reminder checks still require World of Warcraft testing.*
 
 ---
+
 **VERSION 0.2.32 - September 8, 2026 - Available on GitHub**
 
 * **Added** a Companion-safe `AQO1` wire record to each new queued quest observation. The record contains the addon-generated observation key plus quest/map/evidence context, faction, class, level, completion state, timestamp, source, and addon version so **Azeroth Questing Companion** can extract structured research observations from SavedVariables without executing or generally parsing Lua.
@@ -434,6 +448,7 @@
 *The v0.2.32 changes were not confirmed through World of Warcraft testing. After updating, `/reload`, interact with quests, run `/aq sync`, and allow WoW to write `AzerothQuesting.lua`; verify new `companionSync.observations` entries contain an `AQO1|...` wire field and that the Companion can extract the records. On an eligible level-90 alt, also verify the campaign-skip reminder appears correctly, **Don't show again** persists, and `/aq skipreminder` or `/aq campaignskip` can re-enable/reopen it. GitHub remains the listed distribution platform; no CurseForge, Wago, or WowUp availability is claimed here.*
 
 ---
+
 **VERSION 0.2.31 - September 8, 2026 - Available on GitHub**
 
 * **Added** the first **Azeroth Questing Network** client layer. Retail clients register the `AZQUEST` addon-message prefix and automatically join the temporary custom channel `AzerothQuesting`. The channel is joined without adding protocol traffic to normal chat, while `/aq network` reports whether the prefix and custom channel are active.
@@ -676,7 +691,6 @@
 *The GitHub Actions packaging job completed and its generated ZIP structure was inspected: it contains a top-level `ZoneQuestGuide/` folder with the addon files and bundled libraries. The packaged download has not yet been launched in World of Warcraft, so in-game package verification is still required. Wago is still not listed as an available distribution platform because no downloadable Wago release has been published.*
 
 ---
-
 **VERSION 0.2.14 - August 16, 2026 - Available on GitHub**
 
 * **Added** account-wide map/quest learning that records the live `UiMapID`, WoW map name, faction, quest ID/name, completion support, and how the quest was observed (available, offered, accepted, active, or turned in). Unlike phase learning, this collector does not require a known Zidormi timeline, so it can discover map aliases while the player quests normally.
