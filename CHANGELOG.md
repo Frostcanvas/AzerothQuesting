@@ -1,5 +1,19 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 30 - September 13, 2026 - Available on GitHub Pre-release**
+
+* **Changed** anonymous quest and map research to use Blizzard's numeric `WOW_PROJECT_ID` as the durable WoW-product partition key. New observations keep the existing AQO/AQM wire formats but prefix the observation key with `wp<ID>-`, allowing Retail, Classic-family products, and future Blizzard products to remain separate even when Quest IDs or UiMapIDs overlap.
+
+* **Improved** automatic client discovery. `/aq client` (also `/aq product` and `/aq project`) reads `WOW_PROJECT_ID` directly from the running WoW client and reports the detected product label plus game version, build, and interface version. Unknown IDs are not guessed or rejected; they remain identified by their numeric Blizzard product ID.
+
+* **Kept** Beta 29 observation keys compatible. Already queued `gc-...-p<ID>-...` records keep their original deduplication identity, while new records use the shorter numeric-product prefix. No AQO/AQM payload schema change is required, so Azeroth Questing Companion `0.1.9-beta.12` remains compatible.
+
+* **Compatibility:** Azeroth Questing Server `0.2.17` uses the numeric product ID as the database partition, migrates all pre-product-tagging research to Retail product ID `1`, automatically creates a separate registry entry for any never-before-seen product ID, and keeps collecting that product's data while the LAN Research page flags it for a human-readable name. No Companion or public Website build is required.
+
+*Beta 30 requires in-game and live-server validation. On Retail, verify `/aq client` reports `WOW_PROJECT_ID=1`, generate quest and map research, save or `/reload`, and confirm Companion synchronization still succeeds. After Server `0.2.17` is deployed, verify the existing Retail research remains under product ID 1 and the new observation appears only in that Retail partition. When a different supported WoW product is tested later, verify its product ID receives a separate top-level Research tab and does not change Retail quest/map totals. No successful Beta 30 in-game, cross-product, or live-server test is claimed yet.*
+
+---
+
 **VERSION 0.3.0 Beta 29 - September 13, 2026 - Available on GitHub Pre-release**
 
 * **Added** game-client partition tagging to anonymous quest and map research. New queued observations prefix their existing stable observation key with the active WoW product identity and `WOW_PROJECT_ID` while preserving the existing `AQO1`/`AQO2` and `AQM1`/`AQM2` wire formats, so Retail, Classic-family clients, and future WoW products cannot silently collapse into one research dataset.
@@ -172,7 +186,7 @@
 
 * **Added** the `AQM1` SavedVariables handoff for map research. The record intentionally excludes character name, realm, GUID, BattleTag, account identity, peer sender identity, and local filesystem paths. Existing `AQO1`/`AQO2` quest research and P2P quest evidence are unchanged.
 
-* **Compatibility:** automatic server upload of `AQM1` observations requires **Azeroth Questing Companion 0.1.9-beta.11 or newer** and **Azeroth Questing Server 0.2.9 or newer**. No Website build is required for this addon change; the LAN Azeroth Questing Research dashboard is provided by the server.
+* **Compatibility:** automatic server upload of `AQM1` observations requires **Azeroth Questing Companion 0.1.9-beta.11 or newer** and **Azeroth Questing Server `0.2.9` or newer**. No Website build is required for this addon change; the LAN Azeroth Questing Research dashboard is provided by the server.
 
 *Beta 18 still requires in-game validation. Verify `/aq map` reports the expected UiMapID, normal zone changes do not cause Lua/taint errors, and multiple Battle for Darkshore / Battle for Stromgarde variants are recorded as their actual UiMapIDs. End-to-end Companion/server synchronization also remains to be verified after Server 0.2.9 is deployed. No successful in-game or live-server test is claimed yet.*
 
@@ -558,7 +572,7 @@
 
 * **Added** `/zq inspect` (also `/zq instance`) to print a compact live diagnostic for the current map and instance, including parent map, instance ID/name/type, difficulty, LFG ID, scenario, faction, and timeline. `/zq instanceexport` opens the new `ZQGINSTANCEDATA|1` block, while `/zq export` now includes phase, map/quest, and instance-learning data together.
 
-* **Added** anonymous Wago instance-visit telemetry. Each distinct in-instance fingerprint can increment an `instancevisit_m<map>_i<instance>_d<difficulty>_lfg<id>_max<players>_grp<size>_<type>_<faction>` counter once per UI session plus `instance_visit_total`. Localized instance/scenario names are intentionally not sent in Wago metric keys.
+* **Added** anonymous Wago instance-visit telemetry. Each distinct in-instance fingerprint can increment a `instancevisit_m<map>_i<instance>_d<difficulty>_lfg<id>_max<players>_grp<size>_<type>_<faction>` counter once per UI session plus `instance_visit_total`. Localized instance/scenario names are intentionally not sent in Wago metric keys.
 
 * **Improved** `/zq wago` and `/zq check` so the current session also reports an `instancevisit` count. This should make it much easier to verify whether Normal and Heroic Warfronts use the same map/instance context or different difficulty/LFG fingerprints.
 
@@ -925,7 +939,7 @@
 
 * **Improved** timeline switching after a Zidormi interaction by remembering the offered destination and updating the session timeline when WoW reports the corresponding phase transition.
 
-* **Added** a **(Zidormi)** source label to the phase badge so players can tell when timeline state came from the NPC conversation.
+* **Added** a **(Zidormi)** source label to the phase badge so players can tell when the phase came from the NPC conversation.
 
 *In-game testing is still required for this Zidormi detection behavior.*
 
