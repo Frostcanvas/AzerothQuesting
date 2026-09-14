@@ -3,8 +3,8 @@
 ## Title: Azeroth Questing
 ## Notes: Shows unfinished quests for your current zone and points you toward the selected quest.
 ## Author: OpenAI + Player
-## Version: 0.3.0-beta.28
-# Beta 28 test build: Zygor-style navigation HUD and known-zone quest progress; Stable promotion requires explicit approval.
+## Version: 0.3.0-beta.29
+# Beta 29 test build: game-client partition tags for quest/map research; Stable promotion requires explicit approval.
 ## IconTexture: Interface\Icons\INV_Misc_Map_01
 ## SavedVariables: ZoneQuestGuideDB
 ## SavedVariablesPerCharacter: AzerothQuestingCharacterDB
@@ -47,3 +47,4 @@ PhaseGuidance.lua
 GuideModeHub.lua
 GuideHubHUD.lua
 SlashDiagnostics.lua
+GameClientResearch.lua
