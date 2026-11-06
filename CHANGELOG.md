@@ -1,5 +1,12 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 32 - November 6, 2026 - GitHub Pre-release**
+
+* **Fixed** Forever addon discovery by shipping a dedicated Camelot manifest with interface `16001`. It declares the same Lua files and SavedVariables as the existing manifest.
+* **Compatibility:** Companion `0.1.9-beta.14` can install this package and import completed quests. The Forever client load still needs live validation.
+
+---
+
 **VERSION 0.3.0 Beta 31 - November 6, 2026 - GitHub Pre-release**
 
 * **Added** Blizzard's World of Warcraft: Forever interface to the addon manifest and labeled its client in `/aq client`. Completed-quest capture uses the existing per-character SavedVariables format.
