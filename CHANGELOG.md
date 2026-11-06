@@ -1,5 +1,12 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 31 - November 6, 2026 - In development**
+
+* **Added** Blizzard's World of Warcraft: Forever interface to the addon manifest and labeled its client in `/aq client`. Completed-quest capture uses the existing per-character SavedVariables format.
+* **Compatibility:** Companion `0.1.9-beta.14` supports local Forever imports. In-game validation is pending.
+
+---
+
 **VERSION 0.3.0 Beta 30 - September 13, 2026 - Available on GitHub Pre-release**
 
 * **Changed** anonymous quest and map research to use Blizzard's numeric `WOW_PROJECT_ID` as the durable WoW-product partition key. New observations keep the existing AQO/AQM wire formats but prefix the observation key with `wp<ID>-`, allowing Retail, Classic-family products, and future Blizzard products to remain separate even when Quest IDs or UiMapIDs overlap.

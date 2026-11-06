@@ -1,10 +1,10 @@
-## Interface: 120100
-# Live Retail interface. Do not replace this with PTR/test interface metadata.
+## Interface: 120100, 16001
+# Live Retail and World of Warcraft: Forever interfaces.
 ## Title: Azeroth Questing
 ## Notes: Shows unfinished quests for your current zone and points you toward the selected quest.
 ## Author: OpenAI + Player
-## Version: 0.3.0-beta.30
-# Beta 30 test build: automatic WOW_PROJECT_ID research partitions; Stable promotion requires explicit approval.
+## Version: 0.3.0-beta.31
+# Beta 31 test build: Forever completed-quest capture.
 ## IconTexture: Interface\Icons\INV_Misc_Map_01
 ## SavedVariables: ZoneQuestGuideDB
 ## SavedVariablesPerCharacter: AzerothQuestingCharacterDB

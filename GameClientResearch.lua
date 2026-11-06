@@ -67,7 +67,7 @@ local function GetProductContext()
     end
 
     return {
-        label = label,
+        label = interfaceVersion == 16001 and "Forever" or label,
         projectID = projectID,
         gameVersion = gameVersion,
         buildNumber = buildNumber,
