@@ -1,6 +1,6 @@
 # Azeroth Questing Changelog
 
-**VERSION 0.3.0 Beta 31 - November 6, 2026 - In development**
+**VERSION 0.3.0 Beta 31 - November 6, 2026 - GitHub Pre-release**
 
 * **Added** Blizzard's World of Warcraft: Forever interface to the addon manifest and labeled its client in `/aq client`. Completed-quest capture uses the existing per-character SavedVariables format.
 * **Compatibility:** Companion `0.1.9-beta.14` supports local Forever imports. In-game validation is pending.
