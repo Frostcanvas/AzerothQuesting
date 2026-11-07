@@ -105,25 +105,32 @@ local function GetCompletedQuestIDs()
         end
     end
 
-    if not C_QuestLog or not C_QuestLog.GetAllCompletedQuestIDs then
-        return {}
-    end
-
-    local ok, values = pcall(C_QuestLog.GetAllCompletedQuestIDs)
-    values = ok and SafeTable(values) or nil
-    if not values then
-        return {}
-    end
-
     local ids = {}
     local seen = {}
-    for _, rawQuestID in ipairs(values) do
+    local function Add(rawQuestID)
         local questID = SafeNumber(rawQuestID)
         if questID and questID > 0 and not seen[questID] then
             seen[questID] = true
             ids[#ids + 1] = questID
         end
     end
+
+    if C_QuestLog and C_QuestLog.GetAllCompletedQuestIDs then
+        local ok, values = pcall(C_QuestLog.GetAllCompletedQuestIDs)
+        values = ok and SafeTable(values) or nil
+        for _, questID in ipairs(values or {}) do
+            Add(questID)
+        end
+    elseif GetQuestsCompleted then
+        local ok, values = pcall(GetQuestsCompleted)
+        values = ok and SafeTable(values) or nil
+        for questID, completed in pairs(values or {}) do
+            if completed then
+                Add(questID)
+            end
+        end
+    end
+
     table.sort(ids)
     return ids
 end
@@ -293,3 +300,5 @@ SlashCmdList.ZONEQUESTGUIDE = function(msg)
 end
 
 ZQG.CaptureCurrentCharacterCompletedQuestClientSnapshot = CaptureSnapshot
+
+ZQG.CaptureCompletedQuestSnapshot = CaptureSnapshot

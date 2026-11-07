@@ -1,5 +1,13 @@
 # Azeroth Questing Changelog
 
+**VERSION 0.3.0 Beta 33 - November 7, 2026 - Prepared for Beta testing**
+
+* **Added** Vanilla, TBC, and Mists manifests for Classic Era, Anniversary, and Mists Classic. Classic entry points collect quest-log, quest event, and map observations with the existing product-tagged research format.
+* **Added** completed-quest import support for Classic's keyed `GetQuestsCompleted` API, including quest-query completion refresh.
+* **Compatibility:** Companion 0.1.9 Beta 16 manages all five client folders. Classic manifests provide research collection and the completed-quest handoff. In-game validation remains pending.
+
+---
+
 **VERSION 0.3.0 Beta 32 - November 6, 2026 - GitHub Pre-release**
 
 * **Fixed** Forever addon discovery by shipping a dedicated Camelot manifest with interface `16001`. It declares the same Lua files and SavedVariables as the existing manifest.

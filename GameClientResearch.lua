@@ -5,6 +5,7 @@ local function Print(message)
 end
 
 local KNOWN_PRODUCTS = {
+    { constant = "WOW_PROJECT_CAMELOT", label = "Forever" },
     { constant = "WOW_PROJECT_MAINLINE", label = "Retail" },
     { constant = "WOW_PROJECT_CLASSIC", label = "Classic Era" },
     { constant = "WOW_PROJECT_WOWLABS", label = "WoW Labs" },
